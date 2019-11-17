@@ -1,3 +1,5 @@
+suffix = "subsystems.toml"
+
 [auth]
 # HTTPS
 username = "your-username"

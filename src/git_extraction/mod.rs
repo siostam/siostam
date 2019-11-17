@@ -4,11 +4,12 @@ use crate::git_extraction::git::{
 };
 use git2::Repository;
 use std::cmp::max;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 mod git;
+pub mod extraction;
 
-pub fn extract_subsystems_from_target(target: &Target, auth: Option<&AuthConfig>) {
+pub fn get_git_repo_ready_for_extraction(target: &Target, auth: Option<&AuthConfig>) -> PathBuf {
     let name = get_name_from_url(target.url.as_str());
     let path = format!("data/{}", name);
     let path = Path::new(path.as_str());
@@ -17,6 +18,8 @@ pub fn extract_subsystems_from_target(target: &Target, auth: Option<&AuthConfig>
     let callbacks = provide_callbacks(auth);
     let repo: Repository = open_and_update_or_clone_repo(target.url.as_str(), path, callbacks);
     reset_to_branch(target.branch.as_ref(), &repo);
+
+    path.to_path_buf()
 }
 
 /// Transforms https://github.com/alexcrichton/git2-rs.git into git2-rs

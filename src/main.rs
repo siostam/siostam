@@ -1,6 +1,8 @@
 use crate::config::{read_config_in_workdir, SubsystemMapperConfig};
-use crate::git_extraction::extract_subsystems_from_target;
+use crate::git_extraction::get_git_repo_ready_for_extraction;
 use env_logger::Env;
+use crate::git_extraction::extraction::extract_files_from_repo;
+use log::{info};
 
 mod config;
 mod git_extraction;
@@ -14,6 +16,9 @@ fn main() {
     let config: SubsystemMapperConfig = read_config_in_workdir();
 
     for target in config.targets {
-        extract_subsystems_from_target(&target, config.auth.as_ref());
+        let path = get_git_repo_ready_for_extraction(&target, config.auth.as_ref());
+        let list = extract_files_from_repo(path.as_path(), config.suffix.as_str());
+
+        info!("Found {} file(s)", list.len());
     }
 }

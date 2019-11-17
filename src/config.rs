@@ -3,6 +3,7 @@ use std::fs;
 
 #[derive(Debug, Deserialize)]
 pub struct SubsystemMapperConfig {
+    pub(crate) suffix: String,
     pub(crate) auth: Option<AuthConfig>,
     pub(crate) targets: Vec<Target>,
 }
