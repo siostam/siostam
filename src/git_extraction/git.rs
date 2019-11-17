@@ -1,13 +1,19 @@
-use git2::{Branch, BranchType, Remote, Repository, ResetType, RemoteCallbacks, FetchOptions, Cred};
-use log::{log_enabled, debug, info, warn, Level};
-use std::path::Path;
-use std::{fs, thread, time};
 use crate::config::AuthConfig;
 use git2::build::RepoBuilder;
+use git2::{
+    Branch, BranchType, Cred, FetchOptions, Remote, RemoteCallbacks, Repository, ResetType,
+};
+use log::{debug, info, log_enabled, warn, Level};
+use std::path::Path;
+use std::{fs, thread, time};
 
 /// We only want to get the repo up-to-date without re-cloning every time
 /// It deletes the repo folder and re-clones it if it can't open it.
-pub fn open_and_update_or_clone_repo(url: &str, path: &Path, callbacks: RemoteCallbacks) -> Repository {
+pub fn open_and_update_or_clone_repo(
+    url: &str,
+    path: &Path,
+    callbacks: RemoteCallbacks,
+) -> Repository {
     if path.exists() {
         // Try to open the repository then update it
         debug!(
@@ -120,7 +126,9 @@ pub fn update_repo(repo: &Repository, path: &Path, callbacks: RemoteCallbacks) {
 
     // Woooh, get the updates
     // Maybe TODO display progress to the user
-    remote.download(&[], Some(&mut fetch_options)).expect("Error when downloading");
+    remote
+        .download(&[], Some(&mut fetch_options))
+        .expect("Error when downloading");
     remote.disconnect();
 
     // Display the result to the user

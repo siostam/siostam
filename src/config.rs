@@ -22,7 +22,6 @@ pub struct AuthConfig {
 #[derive(Debug, Deserialize)]
 pub struct Target {
     pub(crate) url: String,
-    pub(crate) name: String,
     pub(crate) branch: String,
 }
 
