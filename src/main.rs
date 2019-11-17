@@ -1,11 +1,14 @@
 use crate::config::{read_config_in_workdir, SubsystemMapperConfig};
 use crate::git_extraction::open_or_clone_repo;
+use env_logger::Env;
 use std::path::Path;
 
 mod config;
 mod git_extraction;
 
 fn main() {
+    env_logger::from_env(Env::default().default_filter_or("info")).init();
+
     // The list of all remotes to fetch is stored in the config
     let config: SubsystemMapperConfig = read_config_in_workdir();
 
