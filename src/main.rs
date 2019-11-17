@@ -1,8 +1,8 @@
 use crate::config::{read_config_in_workdir, SubsystemMapperConfig};
+use crate::git_extraction::extraction::extract_files_from_repo;
 use crate::git_extraction::get_git_repo_ready_for_extraction;
 use env_logger::Env;
-use crate::git_extraction::extraction::extract_files_from_repo;
-use log::{info};
+use log::info;
 
 mod config;
 mod git_extraction;

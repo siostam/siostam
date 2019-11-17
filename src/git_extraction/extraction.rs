@@ -1,6 +1,6 @@
+use log::info;
 use std::path::{Path, PathBuf};
 use walkdir::WalkDir;
-use log::{info};
 
 pub struct SubsystemFile {
     pub name: String,
