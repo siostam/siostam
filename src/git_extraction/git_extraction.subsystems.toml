@@ -1,11 +1,20 @@
+stored_in_system = "subsystem_mapper"
+
 [system]
+id = "git_extraction"
 name = "Git extraction"
 description = "It maintains the targetted repository up-to-date in local and search for subsystem files."
 
-[[subsystems]]
+[[subsystem]]
+id = "git"
 name = "Git"
 description = "Clone/Open/Update the repository to get them up to date"
 
-[[subsystems]]
+[[subsystem]]
+id = "extraction"
 name = "Extraction"
 description = "Search in the repositories' folders for subsystems files"
+
+  [[subsystem.dependency]]
+  id = "git"
+  why = "The repo must be in local and up-to-date to get the files"
