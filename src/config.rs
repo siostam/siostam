@@ -4,7 +4,7 @@ use std::fs;
 #[derive(Debug, Deserialize)]
 pub struct SubsystemMapperConfig {
     pub(crate) global: GlobalConfig,
-    pub(crate) remotes: Vec<GitRemote>,
+    pub(crate) targets: Vec<Target>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -13,7 +13,7 @@ pub struct GlobalConfig {
 }
 
 #[derive(Debug, Deserialize)]
-pub struct GitRemote {
+pub struct Target {
     pub(crate) url: String,
     pub(crate) name: String,
     pub(crate) branch: String,
