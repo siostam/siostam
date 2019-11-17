@@ -1,0 +1,11 @@
+[system]
+name = "Git extraction"
+description = "It maintains the targetted repository up-to-date in local and search for subsystem files."
+
+[[subsystems]]
+name = "Git"
+description = "Clone/Open/Update the repository to get them up to date"
+
+[[subsystems]]
+name = "Extraction"
+description = "Search in the repositories' folders for subsystems files"

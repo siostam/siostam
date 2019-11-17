@@ -1,0 +1,3 @@
+[system]
+name = "Subsystems mapper"
+description = "It search for multiple git repositories for files describing subsystems, then create a map with GraphViz"

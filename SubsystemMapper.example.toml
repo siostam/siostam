@@ -12,6 +12,5 @@ private_key = "private/id_rsa"
 #passphrase = "your-passphrase"
 
 [[targets]]
-url = "https://github.com/alexcrichton/git2-rs"
-name = "git2-rs"
+url = "https://github.com/Fanaen/subsystem-mapper.git"
 branch = "master"
