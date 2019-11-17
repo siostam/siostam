@@ -3,13 +3,20 @@ use std::fs;
 
 #[derive(Debug, Deserialize)]
 pub struct SubsystemMapperConfig {
-    pub(crate) global: GlobalConfig,
+    pub(crate) auth: Option<AuthConfig>,
     pub(crate) targets: Vec<Target>,
 }
 
 #[derive(Debug, Deserialize)]
-pub struct GlobalConfig {
-    pub(crate) path_to_ssh_key: Option<String>,
+pub struct AuthConfig {
+    // HTTPS
+    pub(crate) username: Option<String>,
+    pub(crate) password: Option<String>,
+
+    // SSH
+    pub(crate) public_key: Option<String>,
+    pub(crate) private_key: Option<String>,
+    pub(crate) passphrase: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]

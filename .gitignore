@@ -8,3 +8,5 @@
 # IntelliJ files
 .idea
 data
+private
+SubsystemMapper.toml

@@ -1,11 +1,13 @@
-use git2::{Branch, BranchType, Remote, Repository, ResetType};
-use log::{debug, info, warn};
+use git2::{Branch, BranchType, Remote, Repository, ResetType, RemoteCallbacks, FetchOptions, Cred};
+use log::{log_enabled, debug, info, warn, Level};
 use std::path::Path;
 use std::{fs, thread, time};
+use crate::config::AuthConfig;
+use git2::build::RepoBuilder;
 
 /// We only want to get the repo up-to-date without re-cloning every time
-/// It deletes the repo folder and reclones it if it can't open it.
-pub fn open_and_update_or_clone_repo(url: &str, path: &Path) -> Repository {
+/// It deletes the repo folder and re-clones it if it can't open it.
+pub fn open_and_update_or_clone_repo(url: &str, path: &Path, callbacks: RemoteCallbacks) -> Repository {
     if path.exists() {
         // Try to open the repository then update it
         debug!(
@@ -14,7 +16,7 @@ pub fn open_and_update_or_clone_repo(url: &str, path: &Path) -> Repository {
         );
         if let Ok(repo) = Repository::open(path) {
             info!("Repository {} opened.", path.display());
-            update_repo(&repo, &path);
+            update_repo(&repo, &path, callbacks);
             return repo;
         }
 
@@ -24,8 +26,14 @@ pub fn open_and_update_or_clone_repo(url: &str, path: &Path) -> Repository {
     }
 
     // Clone it
-    debug!("No repository yet. Cloning at {}", path.display());
-    match Repository::clone(url, path) {
+    debug!("No repository yet. Cloning {} at {}", url, path.display());
+    let mut builder = RepoBuilder::new();
+    let mut fetch_options = FetchOptions::new();
+
+    fetch_options.remote_callbacks(callbacks);
+    builder.fetch_options(fetch_options);
+
+    match builder.clone(url, path) {
         Ok(repo) => {
             info!("Repository cloned at {}.", path.display());
             repo
@@ -34,15 +42,85 @@ pub fn open_and_update_or_clone_repo(url: &str, path: &Path) -> Repository {
     }
 }
 
+/// Create an object with the callbacks to handle self_certs and auth
+pub fn provide_callbacks(auth_config: Option<&AuthConfig>) -> RemoteCallbacks {
+    let mut callbacks = RemoteCallbacks::new();
+
+    // Always bypass because we are accessing in read-only
+    // TODO Check if this is really okay
+    callbacks.certificate_check(|_cert, _str| true);
+
+    // Authenticate by ssh key if they are provided
+    if let Some(auth_config) = auth_config {
+        // Source: https://wapl.es/rust/2017/10/06/git2-rs-cloning-private-github-repos.html
+        callbacks.credentials(move |_url, user_from_url, cred| {
+
+            if log_enabled!(Level::Debug) {
+                println!("url={}, user={}, is_user_pass_plaintext={:?}, is_ssh_key={:?}, is_ssh_memory={:?}, is_ssh_custom={:?}, is_default={:?}, is_ssh_interactive={:?}, is_username={}",
+                         _url,
+                         user_from_url.unwrap_or("--"),
+                         cred.is_user_pass_plaintext(),
+                         cred.is_ssh_key(),
+                         cred.is_ssh_memory(),
+                         cred.is_ssh_custom(),
+                         cred.is_default(),
+                         cred.is_ssh_interactive(),
+                         cred.is_username());
+            }
+
+            if cred.contains(git2::CredentialType::USERNAME) {
+                git2::Cred::username("git")
+            }
+            else if cred.contains(git2::CredentialType::SSH_KEY) {
+                // TODO Fix SSH authentication. Completely broken at the time
+                // Transform Option<String> in Option<&str>
+                // Source: https://stackoverflow.com/questions/31233938/converting-from-optionstring-to-optionstr
+                let passphrase = auth_config.passphrase.as_ref().map(|x| &**x);
+
+                let public_key = auth_config.public_key.as_ref().map(|pk| Path::new(pk));
+                let private_key = Path::new(auth_config.private_key.as_ref()
+                    .expect("private_key is mandatory in this case"));
+
+                // The actual ssh credentials
+                Ok(Cred::ssh_key(
+                    "git",
+                    public_key,
+                    private_key,
+                    passphrase
+                ).expect("Could not create credentials object"))
+            }
+            else if cred.contains(git2::CredentialType::USER_PASS_PLAINTEXT){
+                // Transform Option<String> in Option<&str>
+                // Source: https://stackoverflow.com/questions/31233938/converting-from-optionstring-to-optionstr
+                let password = auth_config.password.as_ref().map(|x| &**x);
+
+                Ok(Cred::userpass_plaintext(
+                        auth_config.username.as_ref().expect("Username is mandatory in this case"),
+                        password.expect("Password is mandatory in this case")
+                    ).expect("Could not create credentials object"))
+            }
+            else {
+                Err(git2::Error::from_str("Authentication method not supported"))
+            }
+        });
+    }
+
+    callbacks
+}
+
 /// Fetch data on the `origin` remote for the given repository
-pub fn update_repo(repo: &Repository, path: &Path) {
+pub fn update_repo(repo: &Repository, path: &Path, callbacks: RemoteCallbacks) {
     // Get the link to the remote we want to update.
     // It's always origin in our case. This remote is automatically set when cloning.
     let mut remote: Remote = repo.find_remote("origin").expect("You have no origin?");
 
+    // Create an option to provide callbacks
+    let mut fetch_options = FetchOptions::default();
+    fetch_options.remote_callbacks(callbacks);
+
     // Woooh, get the updates
     // Maybe TODO display progress to the user
-    remote.download(&[], None).expect("Error when downloading");
+    remote.download(&[], Some(&mut fetch_options)).expect("Error when downloading");
     remote.disconnect();
 
     // Display the result to the user

@@ -1,7 +1,0 @@
-[global]
-path_to_ssh_key = ""
-
-[[targets]]
-url = "https://github.com/alexcrichton/git2-rs"
-name = "git2-rs"
-branch = "master"

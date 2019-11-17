@@ -14,6 +14,6 @@ fn main() {
     let config: SubsystemMapperConfig = read_config_in_workdir();
 
     for target in config.targets {
-        extract_subsystems_from_target(&target);
+        extract_subsystems_from_target(&target, config.auth.as_ref());
     }
 }
