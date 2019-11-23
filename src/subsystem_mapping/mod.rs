@@ -19,6 +19,8 @@ pub struct SubsystemFileSource {
     subsystem: Option<Vec<SubsystemSource>>,
     subsystems: Option<Vec<SubsystemSource>>,
 
+    // It is stored as Option because it is added by code, but we can unwrap it safely
+    repo_name: Option<String>,
     path: Option<String>,
 }
 
@@ -85,6 +87,10 @@ impl SubsystemFileSource {
             // If there is no name, use the id as backup
             name: system.name.as_ref().or(system.id.as_ref()).unwrap().clone(),
 
+            // Store the repo_name/path to display it on the front-end
+            repo_name: self.repo_name.clone().unwrap(),
+            path: self.path.clone().unwrap(),
+
             // Simple metadata
             description: system.description.clone(),
 
@@ -144,6 +150,10 @@ impl SubsystemFileSource {
                     .unwrap()
                     .clone(),
 
+                // Store the repo_name/path to display it on the front-end
+                repo_name: self.repo_name.clone().unwrap(),
+                path: self.path.clone().unwrap(),
+
                 // Simple metadata
                 description: subsystem.description.clone(),
 
@@ -168,23 +178,27 @@ impl SubsystemFileSource {
 pub struct System {
     id: String,
     name: String,
+    repo_name: String,
+    path: String,
     description: Option<String>,
+
+    parent_system: Option<ReferenceByIndex<System>>,
 
     systems: Vec<ReferenceByIndex<System>>,
     subsystems: Vec<ReferenceByIndex<Subsystem>>,
-
-    parent_system: Option<ReferenceByIndex<System>>,
 }
 
 #[derive(Debug)]
 pub struct Subsystem {
     id: String,
     name: String,
+    repo_name: String,
+    path: String,
     description: Option<String>,
 
-    dependencies: Vec<SubsystemDependency>,
-
     parent_system: Option<ReferenceByIndex<System>>,
+
+    dependencies: Vec<SubsystemDependency>,
 }
 
 #[derive(Debug)]
@@ -204,12 +218,8 @@ pub fn read_file(subsystem_file: &SubsystemFile) -> io::Result<SubsystemFileSour
     let content: String = fs::read_to_string(&subsystem_file.path)?;
     let mut content: SubsystemFileSource = toml::from_str(content.as_str())?;
 
-    content.path = subsystem_file
-        .relative_path
-        .clone()
-        .into_os_string()
-        .into_string()
-        .ok();
+    content.repo_name = Some(subsystem_file.repo_name.clone());
+    content.path = Some(subsystem_file.relative_path.clone());
     Ok(content)
 }
 

@@ -9,8 +9,7 @@ use std::path::{Path, PathBuf};
 pub mod extraction;
 mod git;
 
-pub fn get_git_repo_ready_for_extraction(target: &Target, auth: Option<&AuthConfig>) -> PathBuf {
-    let name = get_name_from_url(target.url.as_str());
+pub fn get_git_repo_ready_for_extraction(target: &Target, name: &str, auth: Option<&AuthConfig>) -> PathBuf {
     let path = format!("data/{}", name);
     let path = Path::new(path.as_str());
 
