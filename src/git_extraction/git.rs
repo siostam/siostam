@@ -1,6 +1,9 @@
 use crate::config::AuthConfig;
 use git2::build::RepoBuilder;
-use git2::{Branch, BranchType, Cred, FetchOptions, Remote, RemoteCallbacks, Repository, ResetType, AutotagOption};
+use git2::{
+    AutotagOption, Branch, BranchType, Cred, FetchOptions, Remote, RemoteCallbacks, Repository,
+    ResetType,
+};
 use log::{debug, info, log_enabled, warn, Level};
 use std::path::Path;
 use std::{fs, thread, time};
@@ -148,7 +151,8 @@ pub fn update_repo(repo: &Repository, path: &Path, callbacks: RemoteCallbacks) {
     // commits. This may be needed even if there was no packfile to download,
     // which can happen e.g. when the branches have been changed but all the
     // needed objects are available locally.
-    remote.update_tips(None, true, AutotagOption::Unspecified, None)
+    remote
+        .update_tips(None, true, AutotagOption::Unspecified, None)
         .expect("Error when updating tips");
 
     // Display the result to the user
@@ -191,7 +195,19 @@ pub fn reset_to_branch(branch_name: &str, repo: &Repository) {
 
     // Reset hard to avoid any remaining changes
     match repo.reset(branch_object.as_object(), ResetType::Hard, None) {
-        Ok(()) => info!("Reset to branch {}.", branch_name),
+        Ok(()) => {
+            // Display a message with details for further analysis
+            info!(
+                "Reset to branch {} with last change by {}",
+                branch_name,
+                branch_object.committer().name().unwrap_or("Unknown"),
+            );
+            info!(
+                "{} {}",
+                branch_object.id(),
+                branch_object.summary().unwrap_or("no message")
+            );
+        }
         Err(e) => panic!("Failed to reset at branch {}: {}", branch_name, e),
     }
 }

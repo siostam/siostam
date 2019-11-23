@@ -111,12 +111,14 @@ impl SubsystemFileSource {
         for subsystem in iterate_over_option_vecs(&self.subsystems, &self.subsystem) {
             // If we don't have neither name nor id, it can't be valid
             if subsystem.id.is_none() && subsystem.name.is_none() {
-                continue
+                continue;
             }
 
             // Process the dependencies. It doesn't search for indexes yet.
             let mut dependencies = Vec::new();
-            for dependency in iterate_over_option_vecs(&subsystem.dependencies, &subsystem.dependency) {
+            for dependency in
+                iterate_over_option_vecs(&subsystem.dependencies, &subsystem.dependency)
+            {
                 if dependency.id.is_some() {
                     dependencies.push(SubsystemDependency {
                         subsystem: ReferenceByIndex::new(dependency.id.as_ref().unwrap()),
@@ -127,10 +129,20 @@ impl SubsystemFileSource {
 
             subsystems.push(Subsystem {
                 // If there is no id, use the name as backup
-                id: subsystem.id.as_ref().or(subsystem.name.as_ref()).unwrap().clone(),
+                id: subsystem
+                    .id
+                    .as_ref()
+                    .or(subsystem.name.as_ref())
+                    .unwrap()
+                    .clone(),
 
                 // If there is no name, use the id as backup
-                name: subsystem.name.as_ref().or(subsystem.id.as_ref()).unwrap().clone(),
+                name: subsystem
+                    .name
+                    .as_ref()
+                    .or(subsystem.id.as_ref())
+                    .unwrap()
+                    .clone(),
 
                 // Simple metadata
                 description: subsystem.description.clone(),
@@ -232,7 +244,6 @@ pub fn source_to_graph(files: Vec<SubsystemFile>) -> io::Result<Graph> {
             systems.push(system.unwrap());
         }
         subsystems.append(&mut local_subsystems);
-
     }
 
     Ok(Graph {
