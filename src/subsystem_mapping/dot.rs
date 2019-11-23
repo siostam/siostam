@@ -3,6 +3,7 @@ use serde_json::json;
 use std::fs::File;
 use std::io;
 use std::io::{BufWriter, Write};
+use log::info;
 
 /// Heavy method which load the handlebars templates requires to generate .dot files
 pub fn init_registry() -> Handlebars {
@@ -90,4 +91,25 @@ impl DotBuilder {
         self.bufwriter.flush()?;
         Ok(())
     }
+}
+
+/// Call to graphviz executable to create the SVG file
+pub fn generate_file_from_dot(path: &str) {
+    use std::process::Command;
+
+    let output = if cfg!(target_os = "windows") {
+        Command::new("cmd")
+            .args(&["/C", "fdp", "-Tsvg", path, "-O"])
+            .output()
+            .expect("failed to execute process")
+    } else {
+        Command::new("sh")
+            .args(&["-c", "fdp", "-Tsvg", path, "-O"])
+            .output()
+            .expect("failed to execute process")
+    };
+
+    String::from_utf8_lossy(output.stdout.as_slice())
+        .lines()
+        .for_each(|l| info!("{}", l));
 }

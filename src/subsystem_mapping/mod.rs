@@ -10,7 +10,7 @@ use std::collections::HashMap;
 // Structure used to avoid refcount
 mod references;
 // Output in dot format
-mod dot;
+pub mod dot;
 
 // -- Models in source files --
 // The models stored in files

@@ -4,6 +4,7 @@ use crate::git_extraction::{get_git_repo_ready_for_extraction, get_name_from_url
 use crate::subsystem_mapping::source_to_graph;
 use env_logger::Env;
 use log::info;
+use crate::subsystem_mapping::dot::generate_file_from_dot;
 
 mod config;
 mod git_extraction;
@@ -41,7 +42,15 @@ fn main() {
         .output_to_json("data/output.json")
         .expect("Error when generating the json output");
 
+    info!("Proceeding to generate the dot file.");
+
     graph
         .output_to_dot("data/output.dot")
         .expect("Error when generating the dot output");
+
+    info!("Proceeding to generate the svg file.");
+
+    generate_file_from_dot("data/output.dot");
+
+    info!("Finished.");
 }
