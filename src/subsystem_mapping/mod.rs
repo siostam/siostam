@@ -3,6 +3,8 @@ use crate::subsystem_mapping::references::ReferenceByIndex;
 use std::{fs, io};
 
 use serde_derive::Deserialize;
+use std::collections::HashMap;
+use std::borrow::BorrowMut;
 
 // Structure used to avoid refcount
 mod references;
@@ -100,11 +102,6 @@ impl SubsystemFileSource {
                 .stored_in_system
                 .as_ref()
                 .map(|s| ReferenceByIndex::new(s)),
-
-            // If specified, the system will be added to the parent system
-            // This will be done later because all files must be extracted before
-            systems: Vec::new(),
-            subsystems: Vec::new(),
         })
     }
 
@@ -183,9 +180,6 @@ pub struct System {
     description: Option<String>,
 
     parent_system: Option<ReferenceByIndex<System>>,
-
-    systems: Vec<ReferenceByIndex<System>>,
-    subsystems: Vec<ReferenceByIndex<Subsystem>>,
 }
 
 #[derive(Debug)]
@@ -225,6 +219,17 @@ pub fn read_file(subsystem_file: &SubsystemFile) -> io::Result<SubsystemFileSour
 
 /// Read the files and reconstruct the whole graph from them
 pub fn source_to_graph(files: Vec<SubsystemFile>) -> io::Result<Graph> {
+    // First, we read the files and store each system, subsystem
+    let mut graph = merge_all_files(files)?;
+
+    // Then, we use the ids to link system and subsystems together
+    reconstruct_links(&mut graph);
+
+    Ok(graph)
+}
+
+/// Get all systems/subsystems from the files
+fn merge_all_files(files: Vec<SubsystemFile>) -> io::Result<Graph> {
     // Read the content of the files as TOML
     let files: Result<Vec<_>, _> = files.iter().map(|f| read_file(f)).collect();
     let files = files?;
@@ -260,4 +265,40 @@ pub fn source_to_graph(files: Vec<SubsystemFile>) -> io::Result<Graph> {
         systems,
         subsystems,
     })
+}
+
+// Parse each ReferenceByIndex and search for the target in the graph
+fn reconstruct_links(unlinked_graph: &mut Graph) {
+    // Construct indexes
+    let mut systems = HashMap::with_capacity(unlinked_graph.systems.len());
+    let mut subsystems = HashMap::with_capacity(unlinked_graph.subsystems.len());
+
+    // TODO: handle conflicts
+    for (index, system) in unlinked_graph.systems.iter().enumerate() {
+        systems.insert(system.id.clone(), index);
+    }
+    for (index, subsystem) in unlinked_graph.subsystems.iter().enumerate() {
+        subsystems.insert(subsystem.id.clone(), index);
+    }
+
+    // Use these indexes to construct the links
+    // 1. For parent systems
+    unlinked_graph
+        .systems
+        .iter_mut()
+        .filter_map(|s| s.parent_system.as_mut())
+        .for_each(|parent| parent.find_index_in(&systems));
+    unlinked_graph
+        .subsystems
+        .iter_mut()
+        .filter_map(|s| s.parent_system.as_mut())
+        .for_each(|parent| parent.find_index_in(&systems));
+
+    // 2. For subsystems' dependencies
+    unlinked_graph
+        .subsystems
+        .iter_mut()
+        .flat_map(|s: &mut Subsystem| s.dependencies.iter_mut())
+        .map(|dep: &mut SubsystemDependency| dep.subsystem.borrow_mut())
+        .for_each(|parent: &mut ReferenceByIndex<Subsystem>| parent.find_index_in(&subsystems));
 }

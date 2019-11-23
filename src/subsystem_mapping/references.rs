@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::marker::PhantomData;
 
 #[derive(Debug)]
@@ -14,5 +15,9 @@ impl<T> ReferenceByIndex<T> {
             index: None,
             phantom: PhantomData,
         }
+    }
+
+    pub fn find_index_in(&mut self, indexes: &HashMap<String, usize>) {
+        self.index = indexes.get(&self.id).map(|i| *i);
     }
 }

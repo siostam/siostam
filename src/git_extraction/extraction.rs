@@ -11,7 +11,11 @@ pub struct SubsystemFile {
 }
 
 /// List all files in repository with a name ending by the given suffix
-pub fn extract_files_from_repo(repo_path: &Path, repo_name: &str, suffix: &str) -> Vec<SubsystemFile> {
+pub fn extract_files_from_repo(
+    repo_path: &Path,
+    repo_name: &str,
+    suffix: &str,
+) -> Vec<SubsystemFile> {
     let mut file_list: Vec<SubsystemFile> = Vec::new();
 
     // Recursively list all files
