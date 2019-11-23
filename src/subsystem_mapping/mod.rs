@@ -2,12 +2,15 @@ use crate::git_extraction::extraction::SubsystemFile;
 use crate::subsystem_mapping::references::ReferenceByIndex;
 use std::{fs, io};
 
+use crate::subsystem_mapping::dot::DotBuilder;
 use serde_derive::{Deserialize, Serialize};
-use std::collections::HashMap;
 use std::borrow::BorrowMut;
+use std::collections::HashMap;
 
 // Structure used to avoid refcount
 mod references;
+// Output in dot format
+mod dot;
 
 // -- Models in source files --
 // The models stored in files
@@ -208,10 +211,82 @@ pub struct Graph {
 }
 
 impl Graph {
+    /// Outputs all the data as JSON for the front-end
     pub fn output_to_json(&self, path: &str) -> serde_json::Result<()> {
         let json = serde_json::to_string_pretty(self)?;
-        fs::write(path, json)
-            .expect("Error with the json ouput");
+        fs::write(path, json).expect("Error with the json output");
+        Ok(())
+    }
+
+    /// Output the graph as DOT
+    pub fn output_to_dot(&self, path: &str) -> io::Result<()> {
+        let mut dot = DotBuilder::new(path)?;
+        let indent = "  ";
+
+        // Generate the systems + subsystems, but not the edges.
+        // The edges must be at the root because an edge can't link something outside the cluster
+        // That's why the links are added at root
+
+        // 1. Recursively generate systems (clusters) and subsystems (nodes)
+        self.output_system(&mut dot, None, indent)?;
+        // 2. Add subsystems' dependencies (edges)
+        self.output_subsystems_dependencies(&mut dot, indent)?;
+
+        // Print the end of file and close it
+        dot.close()?;
+
+        Ok(())
+    }
+
+    /// Recursively output systems and subsytems as DOT
+    fn output_system(
+        &self,
+        mut dot: &mut DotBuilder,
+        current_parent_index: Option<usize>,
+        indent: &str,
+    ) -> io::Result<()> {
+        // 1. We search for systems with a given parent
+        // We begin with current_parent_index = None, which is the root of the graph
+        for (index, system) in self.systems.iter().enumerate() {
+            // Is the system targeted by this call of output_system?
+            let parent_system_index = system.parent_system.as_ref().and_then(|p| p.index());
+            if parent_system_index == current_parent_index {
+                // Begin a new cluster
+                dot.begin_cluster(&indent, &system.id, &system.name);
+
+                // Display children systems
+                self.output_system(&mut dot, Some(index), format!("{}  ", indent).as_str())?;
+
+                // Close the cluster
+                dot.end_cluster(&indent);
+            }
+        }
+
+        // 2. We search for subsystems with a given parent
+        for subsystem in self.subsystems.iter() {
+            // Again, we use the parent_system index to find if it is targeted or not
+            let parent_system_index = subsystem.parent_system.as_ref().and_then(|p| p.index());
+            if parent_system_index == current_parent_index {
+                dot.add_node(&indent, &subsystem.id, &subsystem.name);
+            }
+        }
+
+        Ok(())
+    }
+
+    /// Print dependencies between subsystems as DOT
+    fn output_subsystems_dependencies(&self, dot: &mut DotBuilder, indent: &str) -> io::Result<()> {
+        // Parse all subsystems dependencies
+        for subsystem_a in self.subsystems.iter() {
+            for dependency in subsystem_a.dependencies.iter() {
+                // Search for the targeted system. If there is one output it
+                if let Some(subsystem_b) = dependency.subsystem.index().map(|s| &self.subsystems[s])
+                {
+                    dot.add_edge(&indent, &subsystem_a.id, &subsystem_b.id);
+                }
+            }
+        }
+
         Ok(())
     }
 }

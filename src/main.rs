@@ -34,10 +34,14 @@ fn main() {
     info!("Found {} file(s)", list.len());
 
     // Post-process the data
-    let graph = source_to_graph(list)
-        .expect("Error when generating the graph");
+    let graph = source_to_graph(list).expect("Error when generating the graph");
     info!("{:#?}", graph);
 
-    graph.output_to_json("data/output.json")
+    graph
+        .output_to_json("data/output.json")
         .expect("Error when generating the json output");
+
+    graph
+        .output_to_dot("data/output.dot")
+        .expect("Error when generating the dot output");
 }

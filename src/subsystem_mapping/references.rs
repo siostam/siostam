@@ -1,6 +1,6 @@
+use serde_derive::Serialize;
 use std::collections::HashMap;
 use std::marker::PhantomData;
-use serde_derive::Serialize;
 
 #[derive(Debug, Serialize)]
 pub struct ReferenceByIndex<T> {
@@ -22,5 +22,9 @@ impl<T> ReferenceByIndex<T> {
 
     pub fn find_index_in(&mut self, indexes: &HashMap<String, usize>) {
         self.index = indexes.get(&self.id).map(|i| *i);
+    }
+
+    pub fn index(&self) -> Option<usize> {
+        self.index
     }
 }
