@@ -1,10 +1,13 @@
 use std::collections::HashMap;
 use std::marker::PhantomData;
+use serde_derive::Serialize;
 
-#[derive(Debug)]
+#[derive(Debug, Serialize)]
 pub struct ReferenceByIndex<T> {
     id: String,
     index: Option<usize>,
+
+    #[serde(skip_serializing)]
     phantom: PhantomData<T>,
 }
 

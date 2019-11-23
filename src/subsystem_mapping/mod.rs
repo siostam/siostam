@@ -2,7 +2,7 @@ use crate::git_extraction::extraction::SubsystemFile;
 use crate::subsystem_mapping::references::ReferenceByIndex;
 use std::{fs, io};
 
-use serde_derive::Deserialize;
+use serde_derive::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::borrow::BorrowMut;
 
@@ -171,7 +171,7 @@ impl SubsystemFileSource {
 // -- Post-processed models --
 // The models transformed for usage in graphs
 
-#[derive(Debug)]
+#[derive(Debug, Serialize)]
 pub struct System {
     id: String,
     name: String,
@@ -182,7 +182,7 @@ pub struct System {
     parent_system: Option<ReferenceByIndex<System>>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize)]
 pub struct Subsystem {
     id: String,
     name: String,
@@ -195,16 +195,25 @@ pub struct Subsystem {
     dependencies: Vec<SubsystemDependency>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize)]
 pub struct SubsystemDependency {
     subsystem: ReferenceByIndex<Subsystem>,
     why: Option<String>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize)]
 pub struct Graph {
     systems: Vec<System>,
     subsystems: Vec<Subsystem>,
+}
+
+impl Graph {
+    pub fn output_to_json(&self, path: &str) -> serde_json::Result<()> {
+        let json = serde_json::to_string_pretty(self)?;
+        fs::write(path, json)
+            .expect("Error with the json ouput");
+        Ok(())
+    }
 }
 
 /// Read the content and parse it as TOML
