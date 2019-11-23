@@ -1,8 +1,6 @@
 use crate::config::AuthConfig;
 use git2::build::RepoBuilder;
-use git2::{
-    Branch, BranchType, Cred, FetchOptions, Remote, RemoteCallbacks, Repository, ResetType,
-};
+use git2::{Branch, BranchType, Cred, FetchOptions, Remote, RemoteCallbacks, Repository, ResetType, AutotagOption};
 use log::{debug, info, log_enabled, warn, Level};
 use std::path::Path;
 use std::{fs, thread, time};
@@ -55,6 +53,18 @@ pub fn provide_callbacks(auth_config: Option<&AuthConfig>) -> RemoteCallbacks {
     // Always bypass because we are accessing in read-only
     // TODO Check if this is really okay
     callbacks.certificate_check(|_cert, _str| true);
+
+    // This callback gets called for each remote-tracking branch that gets
+    // updated. The message we output depends on whether it's a new one or an
+    // update.
+    callbacks.update_tips(|refname, a, b| {
+        if a.is_zero() {
+            info!("[new]     {:20} {}", b, refname);
+        } else {
+            info!("[updated] {:10}..{:10} {}", a, b, refname);
+        }
+        true
+    });
 
     // Authenticate by ssh key if they are provided
     if let Some(auth_config) = auth_config {
@@ -116,6 +126,9 @@ pub fn provide_callbacks(auth_config: Option<&AuthConfig>) -> RemoteCallbacks {
 
 /// Fetch data on the `origin` remote for the given repository
 pub fn update_repo(repo: &Repository, path: &Path, callbacks: RemoteCallbacks) {
+    // Many instructions and comments are from the git2-rs fetch example
+    // Source: https://github.com/rust-lang/git2-rs/blob/master/examples/fetch.rs
+
     // Get the link to the remote we want to update.
     // It's always origin in our case. This remote is automatically set when cloning.
     let mut remote: Remote = repo.find_remote("origin").expect("You have no origin?");
@@ -131,8 +144,14 @@ pub fn update_repo(repo: &Repository, path: &Path, callbacks: RemoteCallbacks) {
         .expect("Error when downloading");
     remote.disconnect();
 
+    // Update the references in the remote's namespace to point to the right
+    // commits. This may be needed even if there was no packfile to download,
+    // which can happen e.g. when the branches have been changed but all the
+    // needed objects are available locally.
+    remote.update_tips(None, true, AutotagOption::Unspecified, None)
+        .expect("Error when updating tips");
+
     // Display the result to the user
-    // Source: https://github.com/rust-lang/git2-rs/blob/master/examples/fetch.rs
     {
         info!("Repository {} updated.", path.display());
         // If there are local objects (we got a thin pack), then tell the user

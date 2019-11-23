@@ -222,7 +222,7 @@ pub fn source_to_graph(files: Vec<SubsystemFile>) -> io::Result<Graph> {
         //  - the stored_in_system if present
         //  - or none
         let system_id = system.as_ref().map(|s| &s.id);
-        let mut subsystem_parent = system_id.or(file.stored_in_system.as_ref());
+        let subsystem_parent = system_id.or(file.stored_in_system.as_ref());
 
         // Get the subsystems
         let mut local_subsystems: Vec<Subsystem> = file.extract_subsystems(subsystem_parent);
