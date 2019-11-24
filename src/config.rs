@@ -1,6 +1,6 @@
+use crate::error::CustomError;
 use serde_derive::Deserialize;
 use std::fs;
-use crate::error::CustomError;
 
 #[derive(Debug, Deserialize)]
 pub struct SubsystemMapperConfig {
@@ -28,12 +28,16 @@ pub struct Target {
 }
 
 pub fn read_config_in_workdir(path: &str) -> Result<SubsystemMapperConfig, CustomError> {
-    let config: String =
-        fs::read_to_string(path)
-            .map_err(|err| CustomError::new(format!("While reading config file `{}`: {}", path, err)))?;
+    let config: String = fs::read_to_string(path).map_err(|err| {
+        CustomError::new(format!("While reading config file `{}`: {}", path, err))
+    })?;
 
-    let toml = toml::from_str(config.as_str())
-        .map_err(|err| CustomError::new(format!("While parsing config file `{}` as TOML: {}", path, err)))?;
+    let toml = toml::from_str(config.as_str()).map_err(|err| {
+        CustomError::new(format!(
+            "While parsing config file `{}` as TOML: {}",
+            path, err
+        ))
+    })?;
 
     Ok(toml)
 }

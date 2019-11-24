@@ -1,11 +1,13 @@
-use crate::git_extraction::extraction::SubsystemFile;
-use crate::subsystem_mapping::references::ReferenceByIndex;
-use std::{fs, io};
-
+use crate::config::SubsystemMapperConfig;
+use crate::git_extraction::extraction::{extract_files_from_repo, SubsystemFile};
+use crate::git_extraction::{get_git_repo_ready_for_extraction, get_name_from_url};
 use crate::subsystem_mapping::dot::DotBuilder;
+use crate::subsystem_mapping::references::ReferenceByIndex;
+use log::info;
 use serde_derive::{Deserialize, Serialize};
 use std::borrow::BorrowMut;
 use std::collections::HashMap;
+use std::{fs, io};
 
 // Structure used to avoid refcount
 mod references;
@@ -211,10 +213,38 @@ pub struct Graph {
 }
 
 impl Graph {
+    pub fn construct_from_config(
+        config: &SubsystemMapperConfig,
+    ) -> Result<Graph, Box<dyn std::error::Error>> {
+        // Get the data files
+        let mut list = Vec::new();
+        for target in config.targets.iter() {
+            // Update/clone the repositories
+            let repo_name = get_name_from_url(target.url.as_str());
+            let path = get_git_repo_ready_for_extraction(&target, repo_name, config.auth.as_ref());
+
+            // Walk in the repositories to find the files
+            list.append(&mut extract_files_from_repo(
+                path.as_path(),
+                repo_name,
+                config.suffix.as_str(),
+            ));
+        }
+        info!("Found {} file(s)", list.len());
+
+        // Post-process the data
+        let graph = source_to_graph(list)?;
+        info!("{:#?}", graph);
+        Ok(graph)
+    }
+
+    pub fn to_json(&self) -> serde_json::Result<String> {
+        serde_json::to_string_pretty(self)
+    }
+
     /// Outputs all the data as JSON for the front-end
     pub fn output_to_json(&self, path: &str) -> serde_json::Result<()> {
-        let json = serde_json::to_string_pretty(self)?;
-        fs::write(path, json).expect("Error with the json output");
+        fs::write(path, self.to_json()?).expect("Error with the json output");
         Ok(())
     }
 
