@@ -7,15 +7,20 @@ edition = "2018"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+# Used to update git repository and search for files inside
 git2 = "0.10"
+walkdir = "2"
+
+# Used for configuration and output
 serde = "1.0"
 serde_derive = "1.0"
 serde_json = "1.0"
 toml = "0.5.5"
 
+# Used to generate .dot files
+handlebars = "2.0"
+
+# Utilities + CLI
 log = "0.4.0"
 env_logger = "0.7.1"
-
-walkdir = "2"
-
-handlebars = "2.0"
+clap = "2.33.0"

@@ -1,9 +1,9 @@
 use handlebars::Handlebars;
+use log::info;
 use serde_json::json;
 use std::fs::File;
 use std::io;
 use std::io::{BufWriter, Write};
-use log::info;
 
 /// Heavy method which load the handlebars templates requires to generate .dot files
 pub fn init_registry() -> Handlebars {
