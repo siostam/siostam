@@ -3,13 +3,17 @@ use crate::git_extraction::extraction::extract_files_from_repo;
 use crate::git_extraction::{get_git_repo_ready_for_extraction, get_name_from_url};
 use crate::subsystem_mapping::dot::generate_file_from_dot;
 use crate::subsystem_mapping::source_to_graph;
+use crate::server::start_server;
 use clap::{App, Arg, SubCommand};
 use env_logger::Env;
-use log::{info, warn, error};
+use log::{info, error};
+use crate::error::CustomError;
+use dotenv::dotenv;
 
 mod config;
 mod git_extraction;
 mod subsystem_mapping;
+mod server;
 mod error;
 
 fn main()  {
@@ -40,6 +44,9 @@ fn main()  {
         )
         .get_matches();
 
+    // Load .env content into environment variables
+    dotenv().ok();
+
     // Initialise the logger with INFO level by default.
     let default_level = match matches.occurrences_of("v") {
         0 => "info",
@@ -49,12 +56,16 @@ fn main()  {
     let logger_config = Env::default().default_filter_or(default_level);
     env_logger::from_env(logger_config).init();
 
-    //TODO: add the server part
+    // The config_path has a default value so we can safely unwrap it
+    let config_path = matches.value_of("config").unwrap();
+
     if let Some(_matches) = matches.subcommand_matches("serve") {
-        warn!("This commands is not implemented at the moment");
+        if let Err(err) = run_server(config_path) {
+            error!("{}", err);
+        }
     }
     else {
-        if let Err(err) = run_mapper(matches.value_of("config").unwrap()) {
+        if let Err(err) = run_mapper(config_path) {
             error!("{}", err);
         }
     }
@@ -95,5 +106,10 @@ fn run_mapper(config_path: &str) -> Result<(), Box<dyn std::error::Error>> {
     generate_file_from_dot("data/output.dot");
 
     info!("Finished.");
+    Ok(())
+}
+
+fn run_server(config_path: &str) -> Result<(), CustomError> {
+    start_server()?;
     Ok(())
 }

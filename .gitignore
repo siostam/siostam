@@ -10,3 +10,4 @@
 data
 private
 SubsystemMapper.toml
+.env

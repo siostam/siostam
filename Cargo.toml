@@ -11,7 +11,7 @@ edition = "2018"
 git2 = "0.10"
 walkdir = "2"
 
-# Used for configuration and output
+# Serialisation/Deserialisation. Used for configuration, output, and server
 serde = "1.0"
 serde_derive = "1.0"
 serde_json = "1.0"
@@ -24,3 +24,7 @@ handlebars = "2.0"
 log = "0.4.0"
 env_logger = "0.7.1"
 clap = "2.33.0"
+
+# Server
+dotenv = "0.15"
+actix-web = "1.0"
