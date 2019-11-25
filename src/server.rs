@@ -45,7 +45,9 @@ pub(crate) fn start_server(
                         json = graph.svg();
                     }
 
-                    HttpResponse::Ok().body(json)
+                    HttpResponse::Ok()
+                        .content_type(mime::IMAGE_SVG.as_ref())
+                        .body(json)
                 }),
             )
     })
