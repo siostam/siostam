@@ -2,7 +2,7 @@ use crate::config::{read_config_in_workdir, SubsystemMapperConfig};
 use crate::error::CustomError;
 use crate::server::start_server;
 use crate::subsystem_mapping::dot::generate_file_from_dot;
-use crate::subsystem_mapping::Graph;
+use crate::subsystem_mapping::{Graph, GraphRepresentation};
 use clap::{App, Arg, SubCommand};
 use dotenv::dotenv;
 use env_logger::Env;
@@ -95,7 +95,9 @@ fn run_server(config_path: &str) -> Result<(), CustomError> {
 
     let graph = Graph::construct_from_config(&config)
         .map_err(|err| CustomError::new(format!("While constructing graph: {}", err)))?;
-    let shared_graph = Arc::new(RwLock::from(graph));
+
+    let graph_representation = GraphRepresentation::from(graph)?;
+    let shared_graph = Arc::new(RwLock::from(graph_representation));
 
     start_server(shared_graph)?;
     Ok(())

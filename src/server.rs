@@ -1,47 +1,53 @@
 use crate::error::CustomError;
-use crate::subsystem_mapping::Graph;
-use actix_web::{web, App, HttpRequest, HttpResponse, HttpServer, Responder};
+use crate::subsystem_mapping::GraphRepresentation;
+use actix_web::{web, App, HttpResponse, HttpServer};
 use std::env;
 use std::ops::Deref;
 use std::sync::{Arc, RwLock};
 
-fn index(req: HttpRequest) -> impl Responder {
-    let result = match req.headers().get("Accept-Language") {
-        Some(lang) => lang.to_str().unwrap_or("--"),
-        None => "Hello world!",
-    };
-
-    HttpResponse::Ok().body(result.to_owned())
-}
-
-fn index2() -> impl Responder {
-    HttpResponse::Ok().body("Hello world again!")
-}
-
-pub(crate) fn start_server(graph_handle: Arc<RwLock<Graph>>) -> Result<(), CustomError> {
+pub(crate) fn start_server(
+    graph_handle: Arc<RwLock<GraphRepresentation>>,
+) -> Result<(), CustomError> {
     let address =
         env::var("SUBSYSTEM_MAPPER_SERVER_SOCKET_ADDRESS").unwrap_or("127.0.0.1".to_owned());
     let port = env::var("SUBSYSTEM_MAPPER_SERVER_PORT").unwrap_or("4300".to_owned());
     let bind_address = format!("{}:{}", address, port);
 
     HttpServer::new(move || {
-        let graph_handle = graph_handle.clone();
+        let json_graph_handle = graph_handle.clone();
+        let svg_graph_handle = graph_handle.clone();
 
-        App::new().route(
-            "/",
-            web::get().to(move || {
-                let json: String;
+        App::new()
+            .route(
+                "/graph/json",
+                web::get().to(move || {
+                    let json: String;
 
-                {
-                    let graph_handle = graph_handle.clone();
-                    let lock = graph_handle.read().unwrap();
-                    let graph = lock.deref();
-                    json = graph.to_json().expect("Error on json output");
-                }
+                    {
+                        let graph_handle = &json_graph_handle.clone();
+                        let lock = graph_handle.read().unwrap();
+                        let graph = lock.deref();
+                        json = graph.json();
+                    }
 
-                HttpResponse::Ok().body(json)
-            }),
-        )
+                    HttpResponse::Ok().body(json)
+                }),
+            )
+            .route(
+                "/graph/svg",
+                web::get().to(move || {
+                    let json: String;
+
+                    {
+                        let graph_handle = &svg_graph_handle.clone();
+                        let lock = graph_handle.read().unwrap();
+                        let graph = lock.deref();
+                        json = graph.svg();
+                    }
+
+                    HttpResponse::Ok().body(json)
+                }),
+            )
     })
     .bind(&bind_address)
     .map_err(|err| {

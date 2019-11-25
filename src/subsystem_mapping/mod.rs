@@ -1,7 +1,8 @@
 use crate::config::SubsystemMapperConfig;
+use crate::error::CustomError;
 use crate::git_extraction::extraction::{extract_files_from_repo, SubsystemFile};
 use crate::git_extraction::{get_git_repo_ready_for_extraction, get_name_from_url};
-use crate::subsystem_mapping::dot::DotBuilder;
+use crate::subsystem_mapping::dot::{generate_file_from_dot, DotBuilder};
 use crate::subsystem_mapping::references::ReferenceByIndex;
 use log::info;
 use serde_derive::{Deserialize, Serialize};
@@ -415,4 +416,49 @@ fn reconstruct_links(unlinked_graph: &mut Graph) {
         .flat_map(|s: &mut Subsystem| s.dependencies.iter_mut())
         .map(|dep: &mut SubsystemDependency| dep.subsystem.borrow_mut())
         .for_each(|parent: &mut ReferenceByIndex<Subsystem>| parent.find_index_in(&subsystems));
+}
+
+pub struct GraphRepresentation {
+    json: String,
+    svg: String,
+}
+
+impl GraphRepresentation {
+    pub fn from(graph: Graph) -> Result<GraphRepresentation, CustomError> {
+        // JSON representation
+        let json = graph.to_json().map_err(|err| {
+            CustomError::new(format!("While constructing json representation: {}", err))
+        })?;
+
+        // DOT representation
+        info!("Proceeding to generate the dot file.");
+        graph.output_to_dot("data/output.dot").map_err(|err| {
+            CustomError::new(format!(
+                "While reading generating dot file `data/output.dot`: {}",
+                err
+            ))
+        })?;
+
+        // SVG representation
+        info!("Proceeding to generate the svg file.");
+        generate_file_from_dot("data/output.dot");
+        let svg = fs::read_to_string("data/output.dot.svg").map_err(|err| {
+            CustomError::new(format!(
+                "While reading svg file `data/output.dot.svg`: {}",
+                err
+            ))
+        })?;
+
+        info!("Finished.");
+
+        Ok(GraphRepresentation { json, svg })
+    }
+
+    pub fn json(&self) -> String {
+        self.json.clone()
+    }
+
+    pub fn svg(&self) -> String {
+        self.svg.clone()
+    }
 }
