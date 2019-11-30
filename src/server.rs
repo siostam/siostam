@@ -1,6 +1,7 @@
 use crate::error::CustomError;
 use crate::subsystem_mapping::GraphRepresentation;
-use actix_web::{web, App, HttpResponse, HttpServer};
+use actix_cors::Cors;
+use actix_web::{http::header, middleware::Logger, web, App, HttpResponse, HttpServer};
 use std::env;
 use std::ops::Deref;
 use std::sync::{Arc, RwLock};
@@ -18,6 +19,15 @@ pub(crate) fn start_server(
         let svg_graph_handle = graph_handle.clone();
 
         App::new()
+            .wrap(
+                Cors::new() // <- Construct CORS middleware builder
+                    .allowed_origin("http://localhost:4200")
+                    .allowed_methods(vec!["GET", "POST"])
+                    .allowed_headers(vec![header::AUTHORIZATION, header::ACCEPT])
+                    .allowed_header(header::CONTENT_TYPE)
+                    .max_age(3600),
+            )
+            .wrap(Logger::default())
             .route(
                 "/graph/json",
                 web::get().to(move || {
@@ -36,18 +46,18 @@ pub(crate) fn start_server(
             .route(
                 "/graph/svg",
                 web::get().to(move || {
-                    let json: String;
+                    let svg: String;
 
                     {
                         let graph_handle = &svg_graph_handle.clone();
                         let lock = graph_handle.read().unwrap();
                         let graph = lock.deref();
-                        json = graph.svg();
+                        svg = graph.svg();
                     }
 
                     HttpResponse::Ok()
                         .content_type(mime::IMAGE_SVG.as_ref())
-                        .body(json)
+                        .body(svg)
                 }),
             )
     })
