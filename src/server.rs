@@ -1,6 +1,7 @@
 use crate::error::CustomError;
 use crate::subsystem_mapping::GraphRepresentation;
 use actix_cors::Cors;
+use actix_files as fs;
 use actix_web::{http::header, middleware::Logger, web, App, HttpResponse, HttpServer};
 use std::env;
 use std::ops::Deref;
@@ -60,6 +61,7 @@ pub(crate) fn start_server(
                         .body(svg)
                 }),
             )
+            .service(fs::Files::new("/", "./public").index_file("index.html"))
     })
     .bind(&bind_address)
     .map_err(|err| {
