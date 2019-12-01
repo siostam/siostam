@@ -38,6 +38,10 @@ pub struct SystemSource {
     id: Option<String>,
     name: Option<String>,
     description: Option<String>,
+
+    // Stored as both how_to and howto to handle both naming-conventions
+    howto: Option<Vec<HowToSource>>,
+    how_to: Option<Vec<HowToSource>>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -49,6 +53,15 @@ pub struct SubsystemSource {
     // Stored as both dependency and dependencies to handle both naming-conventions
     dependency: Option<Vec<SubsystemDependencySource>>,
     dependencies: Option<Vec<SubsystemDependencySource>>,
+    // Stored as both how_to and howto to handle both naming-conventions
+    howto: Option<Vec<HowToSource>>,
+    how_to: Option<Vec<HowToSource>>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct HowToSource {
+    url: Option<String>,
+    text: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -89,6 +102,22 @@ impl SubsystemFileSource {
             return None;
         }
 
+        // Process the related how-to
+        let mut how_to_vec = Vec::new();
+        for how_to in iterate_over_option_vecs(&system.how_to, &system.howto) {
+            if how_to.url.is_some() {
+                how_to_vec.push(HowTo {
+                    url: how_to.url.as_ref().unwrap().clone(),
+                    text: how_to
+                        .text
+                        .as_ref()
+                        .or(how_to.url.as_ref())
+                        .unwrap()
+                        .clone(),
+                })
+            }
+        }
+
         Some(System {
             // If there is no id, use the name as backup
             id: system.id.as_ref().or(system.name.as_ref()).unwrap().clone(),
@@ -109,6 +138,8 @@ impl SubsystemFileSource {
                 .stored_in_system
                 .as_ref()
                 .map(|s| ReferenceByIndex::new(s)),
+
+            how_to: how_to_vec,
         })
     }
 
@@ -133,6 +164,22 @@ impl SubsystemFileSource {
                     dependencies.push(SubsystemDependency {
                         subsystem: ReferenceByIndex::new(dependency.id.as_ref().unwrap()),
                         why: dependency.why.clone(),
+                    })
+                }
+            }
+
+            // Process the related how-to
+            let mut how_to_vec = Vec::new();
+            for how_to in iterate_over_option_vecs(&subsystem.how_to, &subsystem.howto) {
+                if how_to.url.is_some() {
+                    how_to_vec.push(HowTo {
+                        url: how_to.url.as_ref().unwrap().clone(),
+                        text: how_to
+                            .text
+                            .as_ref()
+                            .or(how_to.url.as_ref())
+                            .unwrap()
+                            .clone(),
                     })
                 }
             }
@@ -168,6 +215,7 @@ impl SubsystemFileSource {
 
                 // The previously computed dependencies
                 dependencies,
+                how_to: how_to_vec,
             });
         }
 
@@ -187,6 +235,8 @@ pub struct System {
     description: Option<String>,
 
     parent_system: Option<ReferenceByIndex<System>>,
+
+    how_to: Vec<HowTo>,
 }
 
 #[derive(Debug, Serialize)]
@@ -200,6 +250,13 @@ pub struct Subsystem {
     parent_system: Option<ReferenceByIndex<System>>,
 
     dependencies: Vec<SubsystemDependency>,
+    how_to: Vec<HowTo>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct HowTo {
+    url: String,
+    text: String,
 }
 
 #[derive(Debug, Serialize)]

@@ -1,7 +1,17 @@
 [system]
-id="subsystem_mapper"
+id = "subsystem_mapper"
 name = "Subsystems mapper"
 description = "It search for multiple git repositories for files describing subsystems, then create a map with GraphViz"
 
-[[subsystems]]
+    [[system.how_to]]
+    url = "https://getbootstrap.com/"
+    text = "How-to configure a subsystems mapper"
 
+[[subsystem]]
+id = "subsystem_mapper_server"
+name = "Server"
+description = "Serves the SVG and JSON describing the documentation"
+
+    [[subsystem.how_to]]
+    url = "https://getbootstrap.com/"
+    text = "How-to run the server"
