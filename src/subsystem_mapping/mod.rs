@@ -4,7 +4,7 @@ use crate::git_extraction::extraction::{extract_files_from_repo, SubsystemFile};
 use crate::git_extraction::{get_git_repo_ready_for_extraction, get_name_from_url};
 use crate::subsystem_mapping::dot::{generate_file_from_dot, DotBuilder};
 use crate::subsystem_mapping::references::ReferenceByIndex;
-use log::{error, info, warn};
+use log::{debug, error, info, warn};
 use serde_derive::{Deserialize, Serialize};
 use std::borrow::BorrowMut;
 use std::collections::HashMap;
@@ -317,7 +317,7 @@ impl Graph {
 
         // Post-process the data
         let graph = source_to_graph(list)?;
-        info!("{:#?}", graph);
+        debug!("{:#?}", graph);
         Ok(graph)
     }
 
