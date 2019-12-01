@@ -4,10 +4,11 @@ use crate::git_extraction::extraction::{extract_files_from_repo, SubsystemFile};
 use crate::git_extraction::{get_git_repo_ready_for_extraction, get_name_from_url};
 use crate::subsystem_mapping::dot::{generate_file_from_dot, DotBuilder};
 use crate::subsystem_mapping::references::ReferenceByIndex;
-use log::info;
+use log::{error, info, warn};
 use serde_derive::{Deserialize, Serialize};
 use std::borrow::BorrowMut;
 use std::collections::HashMap;
+use std::path::PathBuf;
 use std::{fs, io};
 
 // Structure used to avoid refcount
@@ -220,14 +221,47 @@ impl Graph {
         // Get the data files
         let mut list = Vec::new();
         for target in config.targets.iter() {
-            // Update/clone the repositories
-            let repo_name = get_name_from_url(target.url.as_str());
-            let path = get_git_repo_ready_for_extraction(&target, repo_name, config.auth.as_ref());
+            // The path can be automatic (git repo) or local
+            let path: PathBuf;
+            let repo_name: String;
+
+            if target.folder.is_some() {
+                path = PathBuf::from(target.folder.as_ref().unwrap());
+                repo_name = path
+                    .file_name()
+                    .unwrap_or(path.as_os_str())
+                    .to_string_lossy()
+                    .to_string();
+
+                if !path.exists() {
+                    return Err(Box::from(CustomError::new(format!(
+                        "Local folder does not exists"
+                    ))));
+                } else {
+                    // The local folder mode is useful to quickly view the result but it is rather
+                    // error-prone. Displays warning to make sure the user knows it is located in local.
+                    warn!("Opened local folder {}", path.display());
+                }
+            } else if target.url.is_some() && target.branch.is_some() {
+                // Update/clone the repositories
+                let url = target.url.as_ref().unwrap();
+                let branch = target.branch.as_ref().unwrap();
+                repo_name = get_name_from_url(url.as_str()).to_owned();
+                path = get_git_repo_ready_for_extraction(
+                    &url,
+                    &branch,
+                    &repo_name,
+                    config.auth.as_ref(),
+                );
+            } else {
+                error!("Target must have 'url' + 'branch' or 'folder'. Neither is available here");
+                continue;
+            };
 
             // Walk in the repositories to find the files
             list.append(&mut extract_files_from_repo(
                 path.as_path(),
-                repo_name,
+                &repo_name,
                 config.suffix.as_str(),
             ));
         }

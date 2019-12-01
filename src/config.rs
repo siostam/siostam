@@ -23,8 +23,9 @@ pub struct AuthConfig {
 
 #[derive(Debug, Deserialize)]
 pub struct Target {
-    pub(crate) url: String,
-    pub(crate) branch: String,
+    pub(crate) url: Option<String>,
+    pub(crate) branch: Option<String>,
+    pub(crate) folder: Option<String>,
 }
 
 pub fn read_config_in_workdir(path: &str) -> Result<SubsystemMapperConfig, CustomError> {
