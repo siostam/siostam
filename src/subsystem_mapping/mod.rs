@@ -227,11 +227,7 @@ impl Graph {
 
             if target.folder.is_some() {
                 path = PathBuf::from(target.folder.as_ref().unwrap());
-                repo_name = path
-                    .file_name()
-                    .unwrap_or(path.as_os_str())
-                    .to_string_lossy()
-                    .to_string();
+                repo_name = path.as_os_str().to_string_lossy().to_string();
 
                 if !path.exists() {
                     return Err(Box::from(CustomError::new(format!(
