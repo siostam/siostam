@@ -12,3 +12,4 @@ private
 SubsystemMapper.toml
 .env
 public
+dist

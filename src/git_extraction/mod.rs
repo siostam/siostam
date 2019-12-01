@@ -1,25 +1,20 @@
-use crate::config::AuthConfig;
 use crate::git_extraction::git::{
     open_and_update_or_clone_repo, provide_callbacks, reset_to_branch,
 };
-use git2::Repository;
+use git2::{RemoteCallbacks, Repository};
 use std::cmp::max;
 use std::path::{Path, PathBuf};
 
 pub mod extraction;
 mod git;
 
-pub fn get_git_repo_ready_for_extraction(
-    url: &String,
-    branch: &String,
-    name: &str,
-    auth: Option<&AuthConfig>,
-) -> PathBuf {
+pub fn get_git_repo_ready_for_extraction(url: &String, branch: &String, name: &str) -> PathBuf {
     let path = format!("data/{}", name);
     let path = Path::new(path.as_str());
 
     // Prepare the repository for extraction
-    let callbacks = provide_callbacks(auth);
+    let mut callbacks = RemoteCallbacks::new();
+    provide_callbacks(&mut callbacks);
     let repo: Repository = open_and_update_or_clone_repo(url.as_str(), path, callbacks);
     reset_to_branch(branch.as_ref(), &repo);
 

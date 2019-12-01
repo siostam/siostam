@@ -300,12 +300,7 @@ impl Graph {
                 let url = target.url.as_ref().unwrap();
                 let branch = target.branch.as_ref().unwrap();
                 repo_name = get_name_from_url(url.as_str()).to_owned();
-                path = get_git_repo_ready_for_extraction(
-                    &url,
-                    &branch,
-                    &repo_name,
-                    config.auth.as_ref(),
-                );
+                path = get_git_repo_ready_for_extraction(&url, &branch, &repo_name);
             } else {
                 error!("Target must have 'url' + 'branch' or 'folder'. Neither is available here");
                 continue;

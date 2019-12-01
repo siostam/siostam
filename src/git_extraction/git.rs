@@ -1,4 +1,3 @@
-use crate::config::AuthConfig;
 use git2::build::RepoBuilder;
 use git2::{
     AutotagOption, Branch, BranchType, Cred, FetchOptions, Remote, RemoteCallbacks, Repository,
@@ -6,7 +5,7 @@ use git2::{
 };
 use log::{debug, info, log_enabled, warn, Level};
 use std::path::Path;
-use std::{fs, thread, time};
+use std::{env, fs, thread, time};
 
 /// We only want to get the repo up-to-date without re-cloning every time
 /// It deletes the repo folder and re-clones it if it can't open it.
@@ -50,9 +49,7 @@ pub fn open_and_update_or_clone_repo(
 }
 
 /// Create an object with the callbacks to handle self_certs and auth
-pub fn provide_callbacks(auth_config: Option<&AuthConfig>) -> RemoteCallbacks {
-    let mut callbacks = RemoteCallbacks::new();
-
+pub fn provide_callbacks(callbacks: &mut RemoteCallbacks) {
     // Always bypass because we are accessing in read-only
     // TODO Check if this is really okay
     callbacks.certificate_check(|_cert, _str| true);
@@ -70,61 +67,55 @@ pub fn provide_callbacks(auth_config: Option<&AuthConfig>) -> RemoteCallbacks {
     });
 
     // Authenticate by ssh key if they are provided
-    if let Some(auth_config) = auth_config {
-        // Source: https://wapl.es/rust/2017/10/06/git2-rs-cloning-private-github-repos.html
-        callbacks.credentials(move |_url, user_from_url, cred| {
+    // Source: https://wapl.es/rust/2017/10/06/git2-rs-cloning-private-github-repos.html
+    callbacks.credentials(move |_url, user_from_url, cred| {
+        if log_enabled!(Level::Debug) {
+            println!("url={}, user={}, is_user_pass_plaintext={:?}, is_ssh_key={:?}, is_ssh_memory={:?}, is_ssh_custom={:?}, is_default={:?}, is_ssh_interactive={:?}, is_username={}",
+                     _url,
+                     user_from_url.unwrap_or("--"),
+                     cred.is_user_pass_plaintext(),
+                     cred.is_ssh_key(),
+                     cred.is_ssh_memory(),
+                     cred.is_ssh_custom(),
+                     cred.is_default(),
+                     cred.is_ssh_interactive(),
+                     cred.is_username());
+        }
 
-            if log_enabled!(Level::Debug) {
-                println!("url={}, user={}, is_user_pass_plaintext={:?}, is_ssh_key={:?}, is_ssh_memory={:?}, is_ssh_custom={:?}, is_default={:?}, is_ssh_interactive={:?}, is_username={}",
-                         _url,
-                         user_from_url.unwrap_or("--"),
-                         cred.is_user_pass_plaintext(),
-                         cred.is_ssh_key(),
-                         cred.is_ssh_memory(),
-                         cred.is_ssh_custom(),
-                         cred.is_default(),
-                         cred.is_ssh_interactive(),
-                         cred.is_username());
-            }
+        if cred.contains(git2::CredentialType::USERNAME) {
+            git2::Cred::username("git")
+        }
+        else if cred.contains(git2::CredentialType::SSH_KEY) {
+            // TODO Fix SSH authentication. Completely broken at the time
+            let public_key = env::var("SUBSYSTEM_MAPPER_GIT_SSH_PUBLIC_KEY").ok();
+            let private_key = env::var("SUBSYSTEM_MAPPER_GIT_SSH_PRIVATE_KEY").expect("private_key is mandatory in this case");
+            let passphrase = env::var("SUBSYSTEM_MAPPER_GIT_SSH_PASSPHRASE").ok();
 
-            if cred.contains(git2::CredentialType::USERNAME) {
-                git2::Cred::username("git")
-            }
-            else if cred.contains(git2::CredentialType::SSH_KEY) {
-                // TODO Fix SSH authentication. Completely broken at the time
-                // Transform Option<String> in Option<&str>
-                // Source: https://stackoverflow.com/questions/31233938/converting-from-optionstring-to-optionstr
-                let passphrase = auth_config.passphrase.as_ref().map(|x| &**x);
+            // The actual ssh credentials
+            Ok(Cred::ssh_key(
+                "git",
+                public_key
+                        .as_ref()
+                        .map(|x| Path::new(&**x)),
+                Path::new(private_key.as_str()),
+                passphrase.as_ref().map(|x|&**x)
+            ).expect("Could not create credentials object"))
+        }
+        else if cred.contains(git2::CredentialType::USER_PASS_PLAINTEXT){
+            // Transform Option<String> in Option<&str>
+            // Source: https://stackoverflow.com/questions/31233938/converting-from-optionstring-to-optionstr
+            let username = env::var("SUBSYSTEM_MAPPER_GIT_HTTPS_PASSWORD").expect("Username is mandatory in this case");
+            let password = env::var("SUBSYSTEM_MAPPER_GIT_HTTPS_USERNAME").expect("Password is mandatory in this case");
 
-                let public_key = auth_config.public_key.as_ref().map(|pk| Path::new(pk));
-                let private_key = Path::new(auth_config.private_key.as_ref()
-                    .expect("private_key is mandatory in this case"));
-
-                // The actual ssh credentials
-                Ok(Cred::ssh_key(
-                    "git",
-                    public_key,
-                    private_key,
-                    passphrase
+            Ok(Cred::userpass_plaintext(
+                username.as_str(),
+                    password.as_str()
                 ).expect("Could not create credentials object"))
-            }
-            else if cred.contains(git2::CredentialType::USER_PASS_PLAINTEXT){
-                // Transform Option<String> in Option<&str>
-                // Source: https://stackoverflow.com/questions/31233938/converting-from-optionstring-to-optionstr
-                let password = auth_config.password.as_ref().map(|x| &**x);
-
-                Ok(Cred::userpass_plaintext(
-                        auth_config.username.as_ref().expect("Username is mandatory in this case"),
-                        password.expect("Password is mandatory in this case")
-                    ).expect("Could not create credentials object"))
-            }
-            else {
-                Err(git2::Error::from_str("Authentication method not supported"))
-            }
-        });
-    }
-
-    callbacks
+        }
+        else {
+            Err(git2::Error::from_str("Authentication method not supported"))
+        }
+    });
 }
 
 /// Fetch data on the `origin` remote for the given repository
