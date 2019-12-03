@@ -104,8 +104,8 @@ pub fn provide_callbacks(callbacks: &mut RemoteCallbacks) {
         else if cred.contains(git2::CredentialType::USER_PASS_PLAINTEXT){
             // Transform Option<String> in Option<&str>
             // Source: https://stackoverflow.com/questions/31233938/converting-from-optionstring-to-optionstr
-            let username = env::var("SUBSYSTEM_MAPPER_GIT_HTTPS_PASSWORD").expect("Username is mandatory in this case");
-            let password = env::var("SUBSYSTEM_MAPPER_GIT_HTTPS_USERNAME").expect("Password is mandatory in this case");
+            let username = env::var("SUBSYSTEM_MAPPER_GIT_HTTPS_USERNAME").expect("Username is mandatory in this case");
+            let password = env::var("SUBSYSTEM_MAPPER_GIT_HTTPS_PASSWORD").expect("Password is mandatory in this case");
 
             Ok(Cred::userpass_plaintext(
                 username.as_str(),
