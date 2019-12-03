@@ -1,5 +1,6 @@
 
 
-{{indent}}{{idA}} -> {{idB}}{{#if properties}} [{{#each properties}}
+{{indent}}{{idA}} -> {{idB}} [
+{{indent}}  id = {{idA}}_to_{{idB}};{{#each properties}}
 {{indent}}  {{key}} = {{value}};{{/each}}
-{{indent}}]{{/if}}
+{{indent}}]
