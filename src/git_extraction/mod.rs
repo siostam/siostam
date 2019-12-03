@@ -1,3 +1,4 @@
+use crate::error::CustomError;
 use crate::git_extraction::git::{
     open_and_update_or_clone_repo, provide_callbacks, reset_to_branch,
 };
@@ -8,17 +9,21 @@ use std::path::{Path, PathBuf};
 pub mod extraction;
 mod git;
 
-pub fn get_git_repo_ready_for_extraction(url: &String, branch: &String, name: &str) -> PathBuf {
+pub fn get_git_repo_ready_for_extraction(
+    url: &String,
+    branch: &String,
+    name: &str,
+) -> Result<PathBuf, CustomError> {
     let path = format!("data/{}", name);
     let path = Path::new(path.as_str());
 
     // Prepare the repository for extraction
     let mut callbacks = RemoteCallbacks::new();
     provide_callbacks(&mut callbacks);
-    let repo: Repository = open_and_update_or_clone_repo(url.as_str(), path, callbacks);
+    let repo: Repository = open_and_update_or_clone_repo(url.as_str(), path, callbacks)?;
     reset_to_branch(branch.as_ref(), &repo);
 
-    path.to_path_buf()
+    Ok(path.to_path_buf())
 }
 
 /// Transforms https://github.com/alexcrichton/git2-rs.git into git2-rs

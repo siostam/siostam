@@ -1,9 +1,10 @@
+use crate::error::CustomError;
 use git2::build::RepoBuilder;
 use git2::{
     AutotagOption, Branch, BranchType, Cred, FetchOptions, Remote, RemoteCallbacks, Repository,
     ResetType,
 };
-use log::{debug, info, log_enabled, warn, Level};
+use log::{debug, info, log_enabled, trace, warn, Level};
 use std::path::Path;
 use std::{env, fs, thread, time};
 
@@ -13,7 +14,7 @@ pub fn open_and_update_or_clone_repo(
     url: &str,
     path: &Path,
     callbacks: RemoteCallbacks,
-) -> Repository {
+) -> Result<Repository, CustomError> {
     if path.exists() {
         // Try to open the repository then update it
         debug!(
@@ -22,8 +23,8 @@ pub fn open_and_update_or_clone_repo(
         );
         if let Ok(repo) = Repository::open(path) {
             info!("Repository {} opened.", path.display());
-            update_repo(&repo, &path, callbacks);
-            return repo;
+            update_repo(&repo, &path, callbacks)?;
+            return Ok(repo);
         }
 
         // The path exists and is not valid, this folder must be re-cloned.
@@ -42,9 +43,12 @@ pub fn open_and_update_or_clone_repo(
     match builder.clone(url, path) {
         Ok(repo) => {
             info!("Repository cloned at {}.", path.display());
-            repo
+            Ok(repo)
         }
-        Err(e) => panic!("Failed to clone repository: {}", e),
+        Err(e) => Err(CustomError::new(format!(
+            "Failed to clone repository: {}",
+            e
+        ))),
     }
 }
 
@@ -66,11 +70,25 @@ pub fn provide_callbacks(callbacks: &mut RemoteCallbacks) {
         true
     });
 
+    let mut tries = 0;
+
     // Authenticate by ssh key if they are provided
     // Source: https://wapl.es/rust/2017/10/06/git2-rs-cloning-private-github-repos.html
     callbacks.credentials(move |_url, user_from_url, cred| {
+        tries = tries + 1;
+
+        // Do not attempt to many times
+        if tries > 3 {
+            return Err(git2::Error::from_str("3 fails. Stop it before killing the server."))
+        }
+
+        // Throttle tries 2 and 3 to avoid killing the server
+        if tries > 1 {
+            thread::sleep(time::Duration::from_secs(1));
+        }
+
         if log_enabled!(Level::Debug) {
-            println!("url={}, user={}, is_user_pass_plaintext={:?}, is_ssh_key={:?}, is_ssh_memory={:?}, is_ssh_custom={:?}, is_default={:?}, is_ssh_interactive={:?}, is_username={}",
+            trace!("url={}, user={}, is_user_pass_plaintext={:?}, is_ssh_key={:?}, is_ssh_memory={:?}, is_ssh_custom={:?}, is_default={:?}, is_ssh_interactive={:?}, is_username={}",
                      _url,
                      user_from_url.unwrap_or("--"),
                      cred.is_user_pass_plaintext(),
@@ -119,7 +137,11 @@ pub fn provide_callbacks(callbacks: &mut RemoteCallbacks) {
 }
 
 /// Fetch data on the `origin` remote for the given repository
-pub fn update_repo(repo: &Repository, path: &Path, callbacks: RemoteCallbacks) {
+pub fn update_repo(
+    repo: &Repository,
+    path: &Path,
+    callbacks: RemoteCallbacks,
+) -> Result<(), CustomError> {
     // Many instructions and comments are from the git2-rs fetch example
     // Source: https://github.com/rust-lang/git2-rs/blob/master/examples/fetch.rs
 
@@ -135,7 +157,7 @@ pub fn update_repo(repo: &Repository, path: &Path, callbacks: RemoteCallbacks) {
     // Maybe TODO display progress to the user
     remote
         .download(&[], Some(&mut fetch_options))
-        .expect("Error when downloading");
+        .map_err(|err| CustomError::new(format!("Error when updating tips: {}", err)))?;
     remote.disconnect();
 
     // Update the references in the remote's namespace to point to the right
@@ -144,7 +166,7 @@ pub fn update_repo(repo: &Repository, path: &Path, callbacks: RemoteCallbacks) {
     // needed objects are available locally.
     remote
         .update_tips(None, true, AutotagOption::Unspecified, None)
-        .expect("Error when updating tips");
+        .map_err(|err| CustomError::new(format!("Error when updating tips: {}", err)))?;
 
     // Display the result to the user
     {
@@ -170,6 +192,8 @@ pub fn update_repo(repo: &Repository, path: &Path, callbacks: RemoteCallbacks) {
             );
         }
     }
+
+    Ok(())
 }
 
 /// Make sure we are on the wanted branch with no changes whatsoever

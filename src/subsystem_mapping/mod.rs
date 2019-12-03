@@ -300,7 +300,7 @@ impl Graph {
                 let url = target.url.as_ref().unwrap();
                 let branch = target.branch.as_ref().unwrap();
                 repo_name = get_name_from_url(url.as_str()).to_owned();
-                path = get_git_repo_ready_for_extraction(&url, &branch, &repo_name);
+                path = get_git_repo_ready_for_extraction(&url, &branch, &repo_name)?;
             } else {
                 error!("Target must have 'url' + 'branch' or 'folder'. Neither is available here");
                 continue;
@@ -405,9 +405,19 @@ impl Graph {
 }
 
 /// Read the content and parse it as TOML
-pub fn read_file(subsystem_file: &SubsystemFile) -> io::Result<SubsystemFileSource> {
-    let content: String = fs::read_to_string(&subsystem_file.path)?;
-    let mut content: SubsystemFileSource = toml::from_str(content.as_str())?;
+pub fn read_file(subsystem_file: &SubsystemFile) -> Result<SubsystemFileSource, CustomError> {
+    let content: String = fs::read_to_string(&subsystem_file.path).map_err(|err| {
+        CustomError::new(format!(
+            "While reading subsystem file `{:?}`: {}",
+            subsystem_file.path, err
+        ))
+    })?;
+    let mut content: SubsystemFileSource = toml::from_str(content.as_str()).map_err(|err| {
+        CustomError::new(format!(
+            "While parsing subsystem file as TOML `{:?}`: {}",
+            subsystem_file.path, err
+        ))
+    })?;
 
     content.repo_name = Some(subsystem_file.repo_name.clone());
     content.path = Some(subsystem_file.relative_path.clone());
@@ -415,7 +425,7 @@ pub fn read_file(subsystem_file: &SubsystemFile) -> io::Result<SubsystemFileSour
 }
 
 /// Read the files and reconstruct the whole graph from them
-pub fn source_to_graph(files: Vec<SubsystemFile>) -> io::Result<Graph> {
+pub fn source_to_graph(files: Vec<SubsystemFile>) -> Result<Graph, CustomError> {
     // First, we read the files and store each system, subsystem
     let mut graph = merge_all_files(files)?;
 
@@ -426,7 +436,7 @@ pub fn source_to_graph(files: Vec<SubsystemFile>) -> io::Result<Graph> {
 }
 
 /// Get all systems/subsystems from the files
-fn merge_all_files(files: Vec<SubsystemFile>) -> io::Result<Graph> {
+fn merge_all_files(files: Vec<SubsystemFile>) -> Result<Graph, CustomError> {
     // Read the content of the files as TOML
     let files: Result<Vec<_>, _> = files.iter().map(|f| read_file(f)).collect();
     let files = files?;
