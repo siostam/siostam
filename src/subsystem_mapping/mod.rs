@@ -1,3 +1,4 @@
+use crate::built_info;
 use crate::config::SubsystemMapperConfig;
 use crate::error::CustomError;
 use crate::git_extraction::extraction::{extract_files_from_repo, SubsystemFile};
@@ -269,6 +270,7 @@ pub struct SubsystemDependency {
 pub struct Graph {
     systems: Vec<System>,
     subsystems: Vec<Subsystem>,
+    pub tool_version: String,
 }
 
 impl Graph {
@@ -472,6 +474,7 @@ fn merge_all_files(files: Vec<SubsystemFile>) -> Result<Graph, CustomError> {
     Ok(Graph {
         systems,
         subsystems,
+        tool_version: built_info::PKG_VERSION.to_owned(),
     })
 }
 
