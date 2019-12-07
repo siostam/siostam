@@ -7,6 +7,8 @@ use clap::{App, Arg, SubCommand};
 use dotenv::dotenv;
 use env_logger::Env;
 use log::{error, info};
+use std::fs::OpenOptions;
+use std::io::Write;
 use std::sync::{Arc, RwLock};
 
 mod config;
@@ -46,6 +48,10 @@ fn main() {
                 .alias("server")
                 .about("Start as server"),
         )
+        .subcommand(
+            SubCommand::with_name("init")
+                .about("Add the files in the local directory to get started"),
+        )
         .get_matches();
 
     // Load .env content into environment variables
@@ -59,6 +65,15 @@ fn main() {
     };
     let logger_config = Env::default().default_filter_or(default_level);
     env_logger::from_env(logger_config).init();
+
+    // Write placeholder files if required to
+    if let Some(_matches) = matches.subcommand_matches("init") {
+        match init() {
+            Ok(_) => info!("Initialisation complete!"),
+            Err(err) => error!("{}", err),
+        }
+        return;
+    }
 
     // The config_path has a default value so we can safely unwrap it
     let config_path = matches.value_of("config").unwrap();
@@ -105,5 +120,35 @@ fn run_server(config_path: &str) -> Result<(), CustomError> {
     let shared_graph = Arc::new(RwLock::from(graph_representation));
 
     start_server(shared_graph)?;
+    Ok(())
+}
+
+fn init() -> Result<(), CustomError> {
+    OpenOptions::new()
+        .write(true)
+        .create_new(true)
+        .open("SubsystemMapper.toml")
+        .map_err(|e| {
+            CustomError::new(format!(
+                "While creating the SubsystemMapper.toml file: {}",
+                e
+            ))
+        })?
+        .write_all(include_bytes!("../SubsystemMapper.example.toml"))
+        .map_err(|e| {
+            CustomError::new(format!(
+                "While writing to the SubsystemMapper.toml file: {}",
+                e
+            ))
+        })?;
+
+    OpenOptions::new()
+        .write(true)
+        .create_new(true)
+        .open(".env")
+        .map_err(|e| CustomError::new(format!("While creating the .env file: {}", e)))?
+        .write_all(include_bytes!("../.env.example"))
+        .map_err(|e| CustomError::new(format!("While writing to the .env file: {}", e)))?;
+
     Ok(())
 }

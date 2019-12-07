@@ -3,3 +3,9 @@ suffix = "subsystems.toml"
 [[targets]]
 url = "https://github.com/Fanaen/subsystem-mapper.git"
 branch = "master"
+# folder = "./src"
+
+[[targets]]
+url = "https://github.com/Fanaen/ngx-subsystem-mapper.git"
+branch = "master"
+# folder = "../ngx-subsystem-mapper"
