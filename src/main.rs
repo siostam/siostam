@@ -15,12 +15,17 @@ mod git_extraction;
 mod server;
 mod subsystem_mapping;
 
+pub mod built_info {
+    // The file has been placed there by the build script.
+    include!(concat!(env!("OUT_DIR"), "/built.rs"));
+}
+
 fn main() {
     // -- CLI setup --
-    let matches = App::new("Subsystem mapper")
-        .version("0.1.1")
-        .author("Elouan Poupard-Cosquer <contact@fanaen.fr>")
-        .about("Map and document systems and subsystems across multiple git repositories")
+    let matches = App::new(built_info::PKG_NAME)
+        .version(built_info::PKG_VERSION)
+        .author(built_info::PKG_AUTHORS)
+        .about(built_info::PKG_DESCRIPTION)
         .arg(
             Arg::with_name("config")
                 .short("c")
