@@ -197,34 +197,48 @@ pub fn update_repo(
 }
 
 /// Make sure we are on the wanted branch with no changes whatsoever
-pub fn reset_to_branch(branch_name: &str, repo: &Repository) {
+pub fn reset_to_branch(
+    branch_name: &str,
+    repo: &Repository,
+    repo_name: &str,
+) -> Result<(), CustomError> {
     // We don't want to do any local changes so we can simply use remote branches
     // This allows to find the branch, which is required for the reset thingy
     let branch_name = format!("origin/{}", branch_name);
     let branch: Branch = repo
         .find_branch(branch_name.as_ref(), BranchType::Remote)
-        .expect("Branch not found");
+        .map_err(|e| {
+            CustomError::new(format!(
+                "Failed to find branch for repo {}: {}",
+                repo_name, e
+            ))
+        })?;
 
     // To do the reset, we need the last commit linked to the branch
     let branch_object = branch.get().peel_to_commit().expect("Commit not found");
 
     // Reset hard to avoid any remaining changes
-    match repo.reset(branch_object.as_object(), ResetType::Hard, None) {
-        Ok(()) => {
-            // Display a message with details for further analysis
-            info!(
-                "Reset to branch {} with last change by {}",
-                branch_name,
-                branch_object.committer().name().unwrap_or("Unknown"),
-            );
-            info!(
-                "{} {}",
-                branch_object.id(),
-                branch_object.summary().unwrap_or("no message")
-            );
-        }
-        Err(e) => panic!("Failed to reset at branch {}: {}", branch_name, e),
-    }
+    repo.reset(branch_object.as_object(), ResetType::Hard, None)
+        .map_err(|e| {
+            CustomError::new(format!(
+                "Failed to reset {} at branch {}: {}",
+                repo_name, branch_name, e
+            ))
+        })?;
+
+    // Display a message with details for further analysis
+    info!(
+        "Reset to branch {} with last change by {}",
+        branch_name,
+        branch_object.committer().name().unwrap_or("Unknown"),
+    );
+    info!(
+        "{} {}",
+        branch_object.id(),
+        branch_object.summary().unwrap_or("no message")
+    );
+
+    Ok(())
 }
 
 /// Allows to recover from corrupted git repo

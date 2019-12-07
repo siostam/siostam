@@ -21,7 +21,7 @@ pub fn get_git_repo_ready_for_extraction(
     let mut callbacks = RemoteCallbacks::new();
     provide_callbacks(&mut callbacks);
     let repo: Repository = open_and_update_or_clone_repo(url.as_str(), path, callbacks)?;
-    reset_to_branch(branch.as_ref(), &repo);
+    reset_to_branch(branch.as_ref(), &repo, &name)?;
 
     Ok(path.to_path_buf())
 }

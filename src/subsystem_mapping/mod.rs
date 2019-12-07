@@ -288,7 +288,8 @@ impl Graph {
 
                 if !path.exists() {
                     return Err(Box::from(CustomError::new(format!(
-                        "Local folder does not exists"
+                        "Local folder {} does not exists",
+                        path.display()
                     ))));
                 } else {
                     // The local folder mode is useful to quickly view the result but it is rather
