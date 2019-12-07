@@ -18,7 +18,7 @@ mod subsystem_mapping;
 fn main() {
     // -- CLI setup --
     let matches = App::new("Subsystem mapper")
-        .version("0.1")
+        .version("0.1.1")
         .author("Elouan Poupard-Cosquer <contact@fanaen.fr>")
         .about("Map and document systems and subsystems across multiple git repositories")
         .arg(

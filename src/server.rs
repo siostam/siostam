@@ -3,9 +3,31 @@ use crate::subsystem_mapping::GraphRepresentation;
 use actix_cors::Cors;
 use actix_files as fs;
 use actix_web::{http::header, middleware::Logger, web, App, HttpResponse, HttpServer};
+use log::debug;
 use std::env;
 use std::ops::Deref;
+use std::path::PathBuf;
 use std::sync::{Arc, RwLock};
+
+/// We get the executable path and search for the 'public' folder besides it.
+/// If not available, we search in the working dir
+fn get_public_path() -> String {
+    let public_path = match env::current_exe() {
+        Ok(mut path) => {
+            path.pop();
+            path.push("public");
+
+            if !path.exists() {
+                path = PathBuf::from("./public")
+            }
+
+            path.to_string_lossy().to_string()
+        }
+        Err(_) => "./public".to_owned(),
+    };
+
+    public_path
+}
 
 pub(crate) fn start_server(
     graph_handle: Arc<RwLock<GraphRepresentation>>,
@@ -14,6 +36,10 @@ pub(crate) fn start_server(
         env::var("SUBSYSTEM_MAPPER_SERVER_SOCKET_ADDRESS").unwrap_or("127.0.0.1".to_owned());
     let port = env::var("SUBSYSTEM_MAPPER_SERVER_PORT").unwrap_or("4300".to_owned());
     let bind_address = format!("{}:{}", address, port);
+
+    // Detect where to search for static files
+    let public_path = get_public_path();
+    debug!("Static files will be searched in {}", public_path);
 
     HttpServer::new(move || {
         let json_graph_handle = graph_handle.clone();
@@ -61,7 +87,7 @@ pub(crate) fn start_server(
                         .body(svg)
                 }),
             )
-            .service(fs::Files::new("/", "./public").index_file("index.html"))
+            .service(fs::Files::new("/", public_path.as_str()).index_file("index.html"))
     })
     .bind(&bind_address)
     .map_err(|err| {

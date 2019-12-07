@@ -1,6 +1,6 @@
 [package]
 name = "subsystems-mapper"
-version = "0.1.0"
+version = "0.1.1"
 authors = ["Fanaen <contact@Fanaen.fr>"]
 edition = "2018"
 
