@@ -3,7 +3,7 @@ use crate::subsystem_mapping::GraphRepresentation;
 use actix_cors::Cors;
 use actix_files as fs;
 use actix_web::{http::header, middleware::Logger, web, App, HttpResponse, HttpServer};
-use log::debug;
+use log::{debug, info};
 use std::env;
 use std::ops::Deref;
 use std::path::PathBuf;
@@ -90,6 +90,10 @@ pub(crate) fn start_server(
             .service(fs::Files::new("/", public_path.as_str()).index_file("index.html"))
     })
     .bind(&bind_address)
+    .map(|server| {
+        info!("You may access the server at http://localhost:{}/", port);
+        server
+    })
     .map_err(|err| {
         CustomError::new(format!(
             "While binding to address `{}`: {}",
