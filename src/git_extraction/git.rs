@@ -17,12 +17,12 @@ pub fn open_and_update_or_clone_repo(
 ) -> Result<Repository, CustomError> {
     if path.exists() {
         // Try to open the repository then update it
-        debug!(
+        info!(
             "Directory {} exists. Trying to open as repository...",
             path.display()
         );
         if let Ok(repo) = Repository::open(path) {
-            info!("Repository {} opened.", path.display());
+            info!("Repository {} opened. Updating it...", path.display());
             update_repo(&repo, &path, callbacks)?;
             return Ok(repo);
         }
@@ -33,7 +33,7 @@ pub fn open_and_update_or_clone_repo(
     }
 
     // Clone it
-    debug!("No repository yet. Cloning {} at {}", url, path.display());
+    info!("No repository yet. Cloning {} at {}", url, path.display());
     let mut builder = RepoBuilder::new();
     let mut fetch_options = FetchOptions::new();
 
