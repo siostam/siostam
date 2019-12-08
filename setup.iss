@@ -3,7 +3,7 @@
 
 #define MyAppName "Subsystems mapper"
 #define MyAppSpacelessName "Subsystems-mapper"
-#define MyAppVersion "0.1.1"
+#define MyAppVersion "0.1.2"
 #define MyAppPublisher "Elouan Poupard-Cosquer"
 #define MyAppURL "https://github.com/Fanaen/subsystem-mapper"
 #define MyAppExeName "subsystems-mapper.exe"
