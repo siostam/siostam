@@ -1,5 +1,5 @@
 use crate::built_info;
-use crate::config::SubsystemMapperConfig;
+use crate::config::SiostamConfig;
 use crate::error::CustomError;
 use crate::git_extraction::extraction::{extract_files_from_repo, SubsystemFile};
 use crate::git_extraction::{get_git_repo_ready_for_extraction, get_name_from_url};
@@ -275,7 +275,7 @@ pub struct Graph {
 
 impl Graph {
     pub fn construct_from_config(
-        config: &SubsystemMapperConfig,
+        config: &SiostamConfig,
     ) -> Result<Graph, Box<dyn std::error::Error>> {
         // Get the data files
         let mut list = Vec::new();

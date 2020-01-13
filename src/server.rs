@@ -33,8 +33,8 @@ pub(crate) fn start_server(
     graph_handle: Arc<RwLock<GraphRepresentation>>,
 ) -> Result<(), CustomError> {
     let address =
-        env::var("SUBSYSTEM_MAPPER_SERVER_SOCKET_ADDRESS").unwrap_or("127.0.0.1".to_owned());
-    let port = env::var("SUBSYSTEM_MAPPER_SERVER_PORT").unwrap_or("4300".to_owned());
+        env::var("SIOSTAM_SERVER_SOCKET_ADDRESS").unwrap_or("127.0.0.1".to_owned());
+    let port = env::var("SIOSTAM_SERVER_PORT").unwrap_or("4300".to_owned());
     let bind_address = format!("{}:{}", address, port);
 
     // Detect where to search for static files

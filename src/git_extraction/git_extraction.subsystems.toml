@@ -1,4 +1,4 @@
-stored_in_system = "subsystem_mapper"
+stored_in_system = "siostam"
 
 [system]
 id = "git_extraction"

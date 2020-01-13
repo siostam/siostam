@@ -1,4 +1,4 @@
-use crate::config::{read_config_in_workdir, SubsystemMapperConfig};
+use crate::config::{read_config_in_workdir, SiostamConfig};
 use crate::error::CustomError;
 use crate::server::start_server;
 use crate::subsystem_mapping::dot::generate_file_from_dot;
@@ -35,7 +35,7 @@ fn main() {
                 .value_name("FILE")
                 .help("Sets a custom config file")
                 .takes_value(true)
-                .default_value("SubsystemMapper.toml"),
+                .default_value("Siostam.toml"),
         )
         .arg(
             Arg::with_name("v")
@@ -91,7 +91,7 @@ fn main() {
 
 fn run_mapper(config_path: &str) -> Result<(), Box<dyn std::error::Error>> {
     // Retrieve the list of all remotes to fetch from the config
-    let config: SubsystemMapperConfig = read_config_in_workdir(config_path)?;
+    let config: SiostamConfig = read_config_in_workdir(config_path)?;
 
     let graph = Graph::construct_from_config(&config)?;
 
@@ -111,7 +111,7 @@ fn run_mapper(config_path: &str) -> Result<(), Box<dyn std::error::Error>> {
 
 fn run_server(config_path: &str) -> Result<(), CustomError> {
     // Retrieve the list of all remotes to fetch from the config
-    let config: SubsystemMapperConfig = read_config_in_workdir(config_path)?;
+    let config: SiostamConfig = read_config_in_workdir(config_path)?;
 
     let graph = Graph::construct_from_config(&config)
         .map_err(|err| CustomError::new(format!("While constructing graph: {}", err)))?;
@@ -127,17 +127,17 @@ fn init() -> Result<(), CustomError> {
     OpenOptions::new()
         .write(true)
         .create_new(true)
-        .open("SubsystemMapper.toml")
+        .open("Siostam.toml")
         .map_err(|e| {
             CustomError::new(format!(
-                "While creating the SubsystemMapper.toml file: {}",
+                "While creating the Siostam.toml file: {}",
                 e
             ))
         })?
-        .write_all(include_bytes!("../SubsystemMapper.example.toml"))
+        .write_all(include_bytes!("../Siostam.example.toml"))
         .map_err(|e| {
             CustomError::new(format!(
-                "While writing to the SubsystemMapper.toml file: {}",
+                "While writing to the Siostam.toml file: {}",
                 e
             ))
         })?;

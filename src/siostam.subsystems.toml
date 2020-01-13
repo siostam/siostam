@@ -1,14 +1,14 @@
 [system]
-id = "subsystem_mapper"
-name = "Subsystems mapper"
+id = "siostam"
+name = "Siostam"
 description = "It search for multiple git repositories for files describing subsystems, then create a map with GraphViz"
 
     [[system.how_to]]
     url = "https://getbootstrap.com/"
-    text = "How-to configure a subsystems mapper"
+    text = "How-to configure Siostam"
 
 [[subsystem]]
-id = "subsystem_mapper_server"
+id = "siostam_server"
 name = "Server"
 description = "Serves the SVG and JSON describing the documentation"
 

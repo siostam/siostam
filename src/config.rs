@@ -3,7 +3,7 @@ use serde_derive::Deserialize;
 use std::fs;
 
 #[derive(Debug, Deserialize)]
-pub struct SubsystemMapperConfig {
+pub struct SiostamConfig {
     pub(crate) suffix: String,
     pub(crate) targets: Vec<Target>,
 }
@@ -15,7 +15,7 @@ pub struct Target {
     pub(crate) folder: Option<String>,
 }
 
-pub fn read_config_in_workdir(path: &str) -> Result<SubsystemMapperConfig, CustomError> {
+pub fn read_config_in_workdir(path: &str) -> Result<SiostamConfig, CustomError> {
     let config: String = fs::read_to_string(path).map_err(|err| {
         CustomError::new(format!("While reading config file `{}`: {}", path, err))
     })?;

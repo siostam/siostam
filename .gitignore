@@ -9,7 +9,7 @@
 .idea
 data
 private
-SubsystemMapper.toml
+Siostam.toml
 .env
 public
 dist

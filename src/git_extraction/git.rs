@@ -105,9 +105,9 @@ pub fn provide_callbacks(callbacks: &mut RemoteCallbacks) {
         }
         else if cred.contains(git2::CredentialType::SSH_KEY) {
             // TODO Fix SSH authentication. Completely broken at the time
-            let public_key = env::var("SUBSYSTEM_MAPPER_GIT_SSH_PUBLIC_KEY").ok();
-            let private_key = env::var("SUBSYSTEM_MAPPER_GIT_SSH_PRIVATE_KEY").expect("private_key is mandatory in this case");
-            let passphrase = env::var("SUBSYSTEM_MAPPER_GIT_SSH_PASSPHRASE").ok();
+            let public_key = env::var("SIOSTAM_GIT_SSH_PUBLIC_KEY").ok();
+            let private_key = env::var("SIOSTAM_GIT_SSH_PRIVATE_KEY").expect("private_key is mandatory in this case");
+            let passphrase = env::var("SIOSTAM_GIT_SSH_PASSPHRASE").ok();
 
             // The actual ssh credentials
             Ok(Cred::ssh_key(
@@ -122,8 +122,8 @@ pub fn provide_callbacks(callbacks: &mut RemoteCallbacks) {
         else if cred.contains(git2::CredentialType::USER_PASS_PLAINTEXT){
             // Transform Option<String> in Option<&str>
             // Source: https://stackoverflow.com/questions/31233938/converting-from-optionstring-to-optionstr
-            let username = env::var("SUBSYSTEM_MAPPER_GIT_HTTPS_USERNAME").expect("Username is mandatory in this case");
-            let password = env::var("SUBSYSTEM_MAPPER_GIT_HTTPS_PASSWORD").expect("Password is mandatory in this case");
+            let username = env::var("SIOSTAM_GIT_HTTPS_USERNAME").expect("Username is mandatory in this case");
+            let password = env::var("SIOSTAM_GIT_HTTPS_PASSWORD").expect("Password is mandatory in this case");
 
             Ok(Cred::userpass_plaintext(
                 username.as_str(),

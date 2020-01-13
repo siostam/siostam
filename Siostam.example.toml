@@ -1,7 +1,7 @@
 suffix = "subsystems.toml"
 
 [[targets]]
-url = "https://github.com/Fanaen/subsystem-mapper.git"
+url = "https://github.com/siostam/siostam"
 branch = "master"
 # folder = "./src"
 

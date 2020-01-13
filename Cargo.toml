@@ -1,7 +1,7 @@
 [package]
-name = "subsystems-mapper"
+name = "siostam"
 description = "Map and document systems and subsystems across multiple git repositories"
-version = "0.1.2"
+version = "0.2.0"
 authors = ["Fanaen <contact@Fanaen.fr>"]
 edition = "2018"
 build = "src/build.rs"
