@@ -31,21 +31,43 @@ Additional prerequisite for the server part:
 # Download siostam
 git clone git@github.com:siostam/siostam.git
 
-# One-shot mode: output the graphs and that's it
+# A. One-shot mode: output the graphs and that's it
 cd siostam
 # Development
 cargo run
 # Production
 cargo run --release
 
-# Server mode: render the graphs and display it using the front-end
-# For this, you also need ngx-siostam
+# B. Server mode: render the graphs and display it using the front-end
+# For this, you also need to install ngx-siostam
 cd ..
 git clone git@github.com:siostam/ngx-siostam.git
 cd ngx-siostam
 yarn
+# Aaaand to run it.
 ng serve
+# You also need to run the server on another command line
+cargo run --release -- server
 ```
+
+### Build
+
+ ````bash
+# Build the front end
+cd ngx-siostam
+ng build --prod
+
+# Build the back-end
+cd ../siostam
+cargo build --release
+
+# Copy the front-end in the public folder
+cp ../ngx-siostam/dist/ngx-siostam/* public/
+# All should run on http://localhost:4300/
+cargo run --release -- server
+ ````
+
+Then run [Inno-setup](https://www.jrsoftware.org/isinfo.php) on `./setup.iss`.
 
 ## Usage
 
