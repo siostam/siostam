@@ -1,3 +1,5 @@
+# With `stored_in_system`, all systems in this file will be in the designated system
+# Optional feature as well
 stored_in_system = "siostam"
 
 [system]
@@ -15,6 +17,7 @@ id = "extraction"
 name = "Extraction"
 description = "Search in the repositories' folders for subsystems files"
 
+  # Display a section "dependency" in the subsystem documentation plus an arrow on the graph
   [[subsystem.dependency]]
   id = "git"
   why = "The repo must be in local and up-to-date to get the files"

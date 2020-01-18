@@ -1,17 +1,23 @@
+# System is between simple brackets: only one per file
+# Also, its optional.
 [system]
 id = "siostam"
 name = "Siostam"
 description = "It search for multiple git repositories for files describing subsystems, then create a map with GraphViz"
 
+	# You may display how-to links next to the system
     [[system.how_to]]
-    url = "https://getbootstrap.com/"
+    url = "https://github.com/siostam/siostam#usage"
     text = "How-to configure Siostam"
 
+# All subsystems below are in the system above (if there is one)
+# subsystem are between double brackets: you can use as many as you want
 [[subsystem]]
 id = "siostam_server"
 name = "Server"
 description = "Serves the SVG and JSON describing the documentation"
 
+	# You may display how-to links next to the subsystem system
     [[subsystem.how_to]]
-    url = "https://getbootstrap.com/"
+    url = "https://github.com/siostam/siostam#usage"
     text = "How-to run the server"
