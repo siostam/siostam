@@ -9,6 +9,8 @@ use std::ops::Deref;
 use std::path::PathBuf;
 use std::sync::{Arc, RwLock};
 
+mod websocket;
+
 /// We get the executable path and search for the 'public' folder besides it.
 /// If not available, we search in the working dir
 fn get_public_path() -> String {
@@ -29,7 +31,7 @@ fn get_public_path() -> String {
     public_path
 }
 
-pub(crate) fn start_server(
+pub(crate) async fn start_server(
     graph_handle: Arc<RwLock<GraphRepresentation>>,
 ) -> Result<(), CustomError> {
     let address =
@@ -49,10 +51,14 @@ pub(crate) fn start_server(
             .wrap(
                 Cors::new() // <- Construct CORS middleware builder
                     .allowed_origin("http://localhost:4200")
+                    .allowed_origin("http://127.0.0.1:4200")
+                    .allowed_origin("http://localhost:4300")
+                    .allowed_origin("http://127.0.0.1:4300")
                     .allowed_methods(vec!["GET", "POST"])
                     .allowed_headers(vec![header::AUTHORIZATION, header::ACCEPT])
                     .allowed_header(header::CONTENT_TYPE)
-                    .max_age(3600),
+                    .max_age(3600)
+                    .finish(),
             )
             .wrap(Logger::default())
             .route(
@@ -87,6 +93,7 @@ pub(crate) fn start_server(
                         .body(svg)
                 }),
             )
+            .route("/ws/", web::get().to(websocket::index))
             .service(fs::Files::new("/", public_path.as_str()).index_file("index.html"))
     })
     .bind(&bind_address)
@@ -100,7 +107,7 @@ pub(crate) fn start_server(
             bind_address, err
         ))
     })?
-    .run()
+    .run().await
     .map_err(|err| CustomError::new(format!("While starting server: {}", err)))?;
 
     Ok(())

@@ -29,9 +29,12 @@ clap = "2.33.0"
 
 # Server
 dotenv = "0.15"
-actix-web = "1.0"
-actix-cors = "0.1"
-actix-files = "0.1"
+actix = "0.9"
+actix-web = "2.0"
+actix-web-actors = "2.0"
+actix-cors = "0.2"
+actix-files = "0.2"
+actix-rt = "1.0.0"
 mime = "0.3"
 
 [build-dependencies]

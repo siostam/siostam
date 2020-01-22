@@ -22,7 +22,8 @@ pub mod built_info {
     include!(concat!(env!("OUT_DIR"), "/built.rs"));
 }
 
-fn main() {
+#[actix_rt::main]
+async fn main() {
     // -- CLI setup --
     let matches = App::new(built_info::PKG_NAME)
         .version(built_info::PKG_VERSION)
@@ -79,7 +80,7 @@ fn main() {
     let config_path = matches.value_of("config").unwrap();
 
     if let Some(_matches) = matches.subcommand_matches("serve") {
-        if let Err(err) = run_server(config_path) {
+        if let Err(err) = run_server(config_path).await {
             error!("{}", err);
         }
     } else {
@@ -109,7 +110,7 @@ fn run_mapper(config_path: &str) -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
-fn run_server(config_path: &str) -> Result<(), CustomError> {
+async fn run_server(config_path: &str) -> Result<(), CustomError> {
     // Retrieve the list of all remotes to fetch from the config
     let config: SiostamConfig = read_config_in_workdir(config_path)?;
 
@@ -119,7 +120,7 @@ fn run_server(config_path: &str) -> Result<(), CustomError> {
     let graph_representation = GraphRepresentation::from(graph)?;
     let shared_graph = Arc::new(RwLock::from(graph_representation));
 
-    start_server(shared_graph)?;
+    start_server(shared_graph).await?;
     Ok(())
 }
 
