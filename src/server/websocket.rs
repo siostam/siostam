@@ -6,29 +6,43 @@
 
 use std::time::{Duration, Instant};
 
+use crate::server::actors::{Subscribe, Unsubscribe, UpdateMasterActor};
+use crate::server::{websocket, AppState};
 use actix::prelude::*;
 use actix_web::{web, Error, HttpRequest, HttpResponse};
 use actix_web_actors::ws;
+use std::ops::DerefMut;
+use std::sync::{Arc, Mutex};
 
 /// How often heartbeat pings are sent
 const HEARTBEAT_INTERVAL: Duration = Duration::from_secs(5);
 /// How long before lack of client response causes a timeout
 const CLIENT_TIMEOUT: Duration = Duration::from_secs(10);
 
-/// do websocket handshake and start `MyWebSocket` actor
-pub async fn index(r: HttpRequest, stream: web::Payload) -> Result<HttpResponse, Error> {
-    println!("{:?}", r);
-    let res = ws::start(MyWebSocket::new(), &r, stream);
-    println!("{:?}", res);
-    res
-}
-
 /// websocket connection is long running connection, it easier
 /// to handle with an actor
-struct MyWebSocket {
+pub(crate) struct MyWebSocket {
     /// Client must send ping at least once per 10 seconds (CLIENT_TIMEOUT),
     /// otherwise we drop connection.
     hb: Instant,
+
+    /// Address of the update master to subscribe/unsubscribe
+    update_master: Arc<Mutex<Addr<UpdateMasterActor>>>,
+}
+
+pub async fn index(
+    data: web::Data<AppState>,
+    req: HttpRequest,
+    stream: web::Payload,
+) -> Result<HttpResponse, Error> {
+    println!("{:?}", req);
+    let res = ws::start(
+        websocket::MyWebSocket::new(data.update_master.clone()),
+        &req,
+        stream,
+    );
+    println!("{:?}", res);
+    res
 }
 
 impl Actor for MyWebSocket {
@@ -36,17 +50,42 @@ impl Actor for MyWebSocket {
 
     /// Method is called on actor start. We start the heartbeat process here.
     fn started(&mut self, ctx: &mut Self::Context) {
+        println!("Started");
+        // Subscribe to get updates
+        {
+            match self.update_master.as_ref().lock() {
+                Ok(ref mut handle) => {
+                    let actor = handle.deref_mut();
+                    actor.do_send(Subscribe(ctx.address().recipient()));
+                }
+                Err(err) => log::error!("{}", err.to_string()),
+            }
+        }
+
+        self.hb(ctx);
+    }
+
+    /// Method is called on actor stop. We start the heartbeat process here.
+    fn stopped(&mut self, ctx: &mut Self::Context) {
+        println!("stopped");
+        // Subscribe to stop updates
+        {
+            match self.update_master.as_ref().lock() {
+                Ok(ref mut handle) => {
+                    let actor = handle.deref_mut();
+                    actor.do_send(Unsubscribe(ctx.address().recipient()));
+                }
+                Err(err) => log::error!("{}", err.to_string()),
+            }
+        }
+
         self.hb(ctx);
     }
 }
 
 /// Handler for `ws::Message`
 impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for MyWebSocket {
-    fn handle(
-        &mut self,
-        msg: Result<ws::Message, ws::ProtocolError>,
-        ctx: &mut Self::Context,
-    ) {
+    fn handle(&mut self, msg: Result<ws::Message, ws::ProtocolError>, ctx: &mut Self::Context) {
         // process websocket messages
         println!("WS: {:?}", msg);
         match msg {
@@ -68,8 +107,11 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for MyWebSocket {
 }
 
 impl MyWebSocket {
-    fn new() -> Self {
-        Self { hb: Instant::now() }
+    pub(crate) fn new(update_master: Arc<Mutex<Addr<UpdateMasterActor>>>) -> Self {
+        Self {
+            hb: Instant::now(),
+            update_master,
+        }
     }
 
     /// helper method that sends ping to client every second.
@@ -91,5 +133,22 @@ impl MyWebSocket {
 
             ctx.ping(b"");
         });
+    }
+}
+
+#[derive(Message)]
+#[rtype(result = "()")]
+pub struct PleaseUpdate;
+
+//impl Message for PleaseUpdate {
+//    type Result = Result<bool, actix_web::Error>;
+//}
+
+/// Define handler for `Ping` message
+impl Handler<PleaseUpdate> for MyWebSocket {
+    type Result = ();
+
+    fn handle(&mut self, _msg: PleaseUpdate, ctx: &mut ws::WebsocketContext<Self>) -> Self::Result {
+        ctx.text("{ \"message\": \"please-update\" }");
     }
 }

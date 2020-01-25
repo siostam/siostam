@@ -129,19 +129,9 @@ fn init() -> Result<(), CustomError> {
         .write(true)
         .create_new(true)
         .open("Siostam.toml")
-        .map_err(|e| {
-            CustomError::new(format!(
-                "While creating the Siostam.toml file: {}",
-                e
-            ))
-        })?
+        .map_err(|e| CustomError::new(format!("While creating the Siostam.toml file: {}", e)))?
         .write_all(include_bytes!("../Siostam.example.toml"))
-        .map_err(|e| {
-            CustomError::new(format!(
-                "While writing to the Siostam.toml file: {}",
-                e
-            ))
-        })?;
+        .map_err(|e| CustomError::new(format!("While writing to the Siostam.toml file: {}", e)))?;
 
     OpenOptions::new()
         .write(true)

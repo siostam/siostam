@@ -1,5 +1,7 @@
 use crate::error::CustomError;
+use crate::server::actors::UpdateMasterActor;
 use crate::subsystem_mapping::GraphRepresentation;
+use actix::{Actor, Addr};
 use actix_cors::Cors;
 use actix_files as fs;
 use actix_web::{http::header, middleware::Logger, web, App, HttpResponse, HttpServer};
@@ -7,8 +9,9 @@ use log::{debug, info};
 use std::env;
 use std::ops::Deref;
 use std::path::PathBuf;
-use std::sync::{Arc, RwLock};
+use std::sync::{Arc, Mutex, RwLock};
 
+mod actors;
 mod websocket;
 
 /// We get the executable path and search for the 'public' folder besides it.
@@ -31,11 +34,14 @@ fn get_public_path() -> String {
     public_path
 }
 
+pub struct AppState {
+    update_master: Arc<Mutex<Addr<UpdateMasterActor>>>,
+}
+
 pub(crate) async fn start_server(
     graph_handle: Arc<RwLock<GraphRepresentation>>,
 ) -> Result<(), CustomError> {
-    let address =
-        env::var("SIOSTAM_SERVER_SOCKET_ADDRESS").unwrap_or("127.0.0.1".to_owned());
+    let address = env::var("SIOSTAM_SERVER_SOCKET_ADDRESS").unwrap_or("127.0.0.1".to_owned());
     let port = env::var("SIOSTAM_SERVER_PORT").unwrap_or("4300".to_owned());
     let bind_address = format!("{}:{}", address, port);
 
@@ -47,7 +53,11 @@ pub(crate) async fn start_server(
         let json_graph_handle = graph_handle.clone();
         let svg_graph_handle = graph_handle.clone();
 
+        let update_master = Arc::from(Mutex::new(actors::UpdateMasterActor::new().start()));
+        let app_data = web::Data::new(AppState { update_master });
+
         App::new()
+            .app_data(app_data)
             .wrap(
                 Cors::new() // <- Construct CORS middleware builder
                     .allowed_origin("http://localhost:4200")
@@ -107,7 +117,8 @@ pub(crate) async fn start_server(
             bind_address, err
         ))
     })?
-    .run().await
+    .run()
+    .await
     .map_err(|err| CustomError::new(format!("While starting server: {}", err)))?;
 
     Ok(())
