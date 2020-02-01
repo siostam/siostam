@@ -37,5 +37,9 @@ actix-files = "0.2"
 actix-rt = "1.0.0"
 mime = "0.3"
 
+# Auto-update
+humantime = "2.0.0"
+notify = "4.0.13"
+
 [build-dependencies]
 built = "0.3"

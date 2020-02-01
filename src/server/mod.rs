@@ -1,15 +1,14 @@
+use crate::core::Core;
 use crate::error::CustomError;
 use crate::server::actors::UpdateMasterActor;
-use crate::subsystem_mapping::GraphRepresentation;
 use actix::{Actor, Addr};
 use actix_cors::Cors;
 use actix_files as fs;
 use actix_web::{http::header, middleware::Logger, web, App, HttpResponse, HttpServer};
 use log::{debug, info};
 use std::env;
-use std::ops::Deref;
 use std::path::PathBuf;
-use std::sync::{Arc, Mutex, RwLock};
+use std::sync::{Arc, Mutex};
 
 mod actors;
 mod websocket;
@@ -38,9 +37,7 @@ pub struct AppState {
     update_master: Arc<Mutex<Addr<UpdateMasterActor>>>,
 }
 
-pub(crate) async fn start_server(
-    graph_handle: Arc<RwLock<GraphRepresentation>>,
-) -> Result<(), CustomError> {
+pub(crate) async fn start_server(access_to_core: Arc<Core>) -> Result<(), CustomError> {
     let address = env::var("SIOSTAM_SERVER_SOCKET_ADDRESS").unwrap_or("127.0.0.1".to_owned());
     let port = env::var("SIOSTAM_SERVER_PORT").unwrap_or("4300".to_owned());
     let bind_address = format!("{}:{}", address, port);
@@ -50,10 +47,12 @@ pub(crate) async fn start_server(
     debug!("Static files will be searched in {}", public_path);
 
     HttpServer::new(move || {
-        let json_graph_handle = graph_handle.clone();
-        let svg_graph_handle = graph_handle.clone();
+        let json_access_to_core = access_to_core.clone();
+        let svg_access_to_core = access_to_core.clone();
+        let update_master_access_to_core = access_to_core.clone();
 
-        let update_master = Arc::from(Mutex::new(actors::UpdateMasterActor::new().start()));
+        let update_master = actors::UpdateMasterActor::new(update_master_access_to_core).start();
+        let update_master = Arc::from(Mutex::new(update_master));
         let app_data = web::Data::new(AppState { update_master });
 
         App::new()
@@ -73,34 +72,20 @@ pub(crate) async fn start_server(
             .wrap(Logger::default())
             .route(
                 "/graph/json",
-                web::get().to(move || {
-                    let json: String;
-
-                    {
-                        let graph_handle = &json_graph_handle.clone();
-                        let lock = graph_handle.read().unwrap();
-                        let graph = lock.deref();
-                        json = graph.json();
-                    }
-
-                    HttpResponse::Ok().body(json)
+                web::get().to(move || match json_access_to_core.json() {
+                    Ok(json) => HttpResponse::Ok().body(json),
+                    Err(err) => HttpResponse::InternalServerError()
+                        .body(serde_json::to_string(&err).unwrap_or(err.message)),
                 }),
             )
             .route(
                 "/graph/svg",
-                web::get().to(move || {
-                    let svg: String;
-
-                    {
-                        let graph_handle = &svg_graph_handle.clone();
-                        let lock = graph_handle.read().unwrap();
-                        let graph = lock.deref();
-                        svg = graph.svg();
-                    }
-
-                    HttpResponse::Ok()
+                web::get().to(move || match svg_access_to_core.svg() {
+                    Ok(svg) => HttpResponse::Ok()
                         .content_type(mime::IMAGE_SVG.as_ref())
-                        .body(svg)
+                        .body(svg),
+                    Err(err) => HttpResponse::InternalServerError()
+                        .body(serde_json::to_string(&err).unwrap_or(err.message)),
                 }),
             )
             .route("/ws/", web::get().to(websocket::index))

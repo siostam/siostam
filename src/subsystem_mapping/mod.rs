@@ -514,6 +514,7 @@ fn reconstruct_links(unlinked_graph: &mut Graph) {
         .for_each(|parent: &mut ReferenceByIndex<Subsystem>| parent.find_index_in(&subsystems));
 }
 
+#[derive(Eq, PartialEq)]
 pub struct GraphRepresentation {
     json: String,
     svg: String,

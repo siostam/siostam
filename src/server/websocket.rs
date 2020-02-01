@@ -30,18 +30,18 @@ pub(crate) struct MyWebSocket {
     update_master: Arc<Mutex<Addr<UpdateMasterActor>>>,
 }
 
+/// The endpoint provided to actix
 pub async fn index(
     data: web::Data<AppState>,
     req: HttpRequest,
     stream: web::Payload,
 ) -> Result<HttpResponse, Error> {
-    println!("{:?}", req);
+    // Start a websocket actor to receive/send messages
     let res = ws::start(
         websocket::MyWebSocket::new(data.update_master.clone()),
         &req,
         stream,
     );
-    println!("{:?}", res);
     res
 }
 
@@ -50,7 +50,7 @@ impl Actor for MyWebSocket {
 
     /// Method is called on actor start. We start the heartbeat process here.
     fn started(&mut self, ctx: &mut Self::Context) {
-        println!("Started");
+        log::trace!("Websocket actor started");
         // Subscribe to get updates
         {
             match self.update_master.as_ref().lock() {
@@ -67,7 +67,7 @@ impl Actor for MyWebSocket {
 
     /// Method is called on actor stop. We start the heartbeat process here.
     fn stopped(&mut self, ctx: &mut Self::Context) {
-        println!("stopped");
+        log::trace!("stopped");
         // Subscribe to stop updates
         {
             match self.update_master.as_ref().lock() {
@@ -87,7 +87,6 @@ impl Actor for MyWebSocket {
 impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for MyWebSocket {
     fn handle(&mut self, msg: Result<ws::Message, ws::ProtocolError>, ctx: &mut Self::Context) {
         // process websocket messages
-        println!("WS: {:?}", msg);
         match msg {
             Ok(ws::Message::Ping(msg)) => {
                 self.hb = Instant::now();
@@ -122,7 +121,7 @@ impl MyWebSocket {
             // check client heartbeats
             if Instant::now().duration_since(act.hb) > CLIENT_TIMEOUT {
                 // heartbeat timed out
-                println!("Websocket Client heartbeat failed, disconnecting!");
+                log::error!("Websocket Client heartbeat failed, disconnecting!");
 
                 // stop actor
                 ctx.stop();
@@ -139,10 +138,6 @@ impl MyWebSocket {
 #[derive(Message)]
 #[rtype(result = "()")]
 pub struct PleaseUpdate;
-
-//impl Message for PleaseUpdate {
-//    type Result = Result<bool, actix_web::Error>;
-//}
 
 /// Define handler for `Ping` message
 impl Handler<PleaseUpdate> for MyWebSocket {

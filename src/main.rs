@@ -1,17 +1,22 @@
-use crate::config::{read_config_in_workdir, SiostamConfig};
+use crate::config::{read_config_in_workdir, watch_config, SiostamConfig};
+use crate::core::Core;
 use crate::error::CustomError;
 use crate::server::start_server;
 use crate::subsystem_mapping::dot::generate_file_from_dot;
-use crate::subsystem_mapping::{Graph, GraphRepresentation};
+use crate::subsystem_mapping::Graph;
 use clap::{App, Arg, SubCommand};
 use dotenv::dotenv;
 use env_logger::Env;
+use humantime::{format_duration, parse_duration};
 use log::{error, info};
+use std::env;
 use std::fs::OpenOptions;
 use std::io::Write;
-use std::sync::{Arc, RwLock};
+use std::sync::Arc;
+use std::time::Duration;
 
 mod config;
+mod core;
 mod error;
 mod git_extraction;
 mod server;
@@ -111,16 +116,36 @@ fn run_mapper(config_path: &str) -> Result<(), Box<dyn std::error::Error>> {
 }
 
 async fn run_server(config_path: &str) -> Result<(), CustomError> {
-    // Retrieve the list of all remotes to fetch from the config
-    let config: SiostamConfig = read_config_in_workdir(config_path)?;
+    // Update interval
+    let duration = env::var("SIOSTAM_INTERVAL_BETWEEN_UPDATES").unwrap_or_else(|e| {
+        log::error!(
+            "While retrieving SIOSTAM_INTERVAL_BETWEEN_UPDATES env var: {}",
+            e
+        );
+        "5min".to_string()
+    });
+    let interval_between_updates: Duration =
+        parse_duration(duration.as_str()).unwrap_or_else(|e| {
+            log::error!(
+                "While parsing SIOSTAM_INTERVAL_BETWEEN_UPDATES env var: {}",
+                e
+            );
+            Duration::from_secs(5 * 60)
+        });
+    log::info!(
+        "Interval between updates: {}",
+        format_duration(interval_between_updates).to_string()
+    );
 
-    let graph = Graph::construct_from_config(&config)
-        .map_err(|err| CustomError::new(format!("While constructing graph: {}", err)))?;
+    // Read the configuration and access a first state of the graph
+    let core = Core::new(config_path, interval_between_updates)?;
+    let access_to_core = Arc::new(core);
 
-    let graph_representation = GraphRepresentation::from(graph)?;
-    let shared_graph = Arc::new(RwLock::from(graph_representation));
+    // Watch for changes of the configuration
+    watch_config(access_to_core.clone(), config_path);
 
-    start_server(shared_graph).await?;
+    // Run the server on current thread
+    start_server(access_to_core).await?;
     Ok(())
 }
 

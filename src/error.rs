@@ -1,7 +1,8 @@
 use core::fmt;
+use serde_derive::Serialize;
 use std::error;
 
-#[derive(Debug)]
+#[derive(Debug, Serialize)]
 pub struct CustomError {
     pub message: String,
 }

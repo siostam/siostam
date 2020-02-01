@@ -107,6 +107,7 @@ You may have passwords on your repositories, or you may want to change the port.
 ````ini
 SIOSTAM_SERVER_PORT=4300
 SIOSTAM_SERVER_SOCKET_ADDRESS=127.0.0.1
+SIOSTAM_INTERVAL_BETWEEN_UPDATES=5min
 
 SIOSTAM_GIT_HTTPS_USERNAME=your-username
 SIOSTAM_GIT_HTTPS_PASSWORD=your-password
@@ -116,6 +117,8 @@ SIOSTAM_GIT_HTTPS_PASSWORD=your-password
 # SIOSTAM_GIT_SSH_PUBLIC_KEY=private/id_rsa
 # SIOSTAM_GIT_SSH_PASSPHRASE=your-passphrase
 ````
+
+The `SIOSTAM_INTERVAL_BETWEEN_UPDATES` is set using [humantime](https://docs.rs/humantime/2.0.0/humantime/fn.parse_duration.html) so you can use many formats : `30s`, `45seconds`, `17second`, `1h 20min 17s` etc.  
 
 ### Document it
 
