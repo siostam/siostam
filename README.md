@@ -69,6 +69,45 @@ cargo run --release -- server
 
 Then run [Inno-setup](https://www.jrsoftware.org/isinfo.php) on `./setup.iss`.
 
+### Docker
+
+The workflow is kind of a work-in-progress but right now, it looks like this
+
+````sh
+# Build the front-end
+cd ngx-siostam
+docker build -t siostam/ngx-siostam:0.2 .
+# Publish the front-end
+docker push siostam/ngx-siostam:0.2
+
+# Build the main image 
+cd siostam 
+docker build -t siostam/siostam:0.2 .
+# Publish it
+# Publish the front-end
+docker push siostam/siostam:0.2
+````
+
+To run the service, create the `docker-compose.yml` file like this and do `docker-compose up -d` in the same folder :
+
+````yaml
+version: '3'
+services:
+  siostam:
+    image: siostam/siostam:0.2
+    volumes:
+      - "./Siostam.toml:/opt/Siostam.toml:ro"
+    ports:
+      - "4300:4300"
+    environment:
+      - SIOSTAM_SERVER_PORT=4300
+      - SIOSTAM_SERVER_SOCKET_ADDRESS=0.0.0.0
+      - SIOSTAM_INTERVAL_BETWEEN_UPDATES=5min
+      - SIOSTAM_GIT_HTTPS_USERNAME=your-username
+      - SIOSTAM_GIT_HTTPS_PASSWORD=your-password
+    restart: always
+````
+
 ## Usage
 
 ### Configure it

@@ -103,8 +103,8 @@ pub fn generate_file_from_dot(path: &str) {
             .output()
             .expect("failed to execute process")
     } else {
-        Command::new("sh")
-            .args(&["-c", "fdp", "-Tsvg", path, "-O"])
+        Command::new("fdp")
+            .args(&["-Tsvg", path, "-O"])
             .output()
             .expect("failed to execute process")
     };
