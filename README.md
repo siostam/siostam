@@ -80,15 +80,16 @@ docker build -t siostam/ngx-siostam:0.2 .
 # Publish the front-end
 docker push siostam/ngx-siostam:0.2
 
+cd ..
+
 # Build the main image 
 cd siostam 
 docker build -t siostam/siostam:0.2 .
 # Publish it
-# Publish the front-end
 docker push siostam/siostam:0.2
 ````
 
-To run the service, create the `docker-compose.yml` file like this and do `docker-compose up -d` in the same folder :
+To run the service, create the `docker-compose.yml` file, put the `Siostam.toml` next to it and do `docker-compose up -d` in the same folder :
 
 ````yaml
 version: '3'
