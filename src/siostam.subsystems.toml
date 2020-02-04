@@ -3,7 +3,7 @@
 [system]
 id = "siostam"
 name = "Siostam"
-description = "It search for multiple git repositories for files describing subsystems, then create a map with GraphViz"
+description = "Create a GraphViz map of subsystems found in multiple git repositories."
 
     # You may display how-to links next to the system
     [[system.how_to]]
@@ -15,7 +15,7 @@ description = "It search for multiple git repositories for files describing subs
 [[subsystem]]
 id = "siostam_server"
 name = "Server"
-description = "Serves the SVG and JSON describing the documentation"
+description = "Serves the SVG and JSON describing the subsystems"
 
     # You may display how-to links next to the subsystem system
     [[subsystem.how_to]]
