@@ -106,6 +106,7 @@ services:
       - SIOSTAM_INTERVAL_BETWEEN_UPDATES=5min
       - SIOSTAM_GIT_HTTPS_USERNAME=your-username
       - SIOSTAM_GIT_HTTPS_PASSWORD=your-password
+      - SIOSTAM_SERVER_CORS_ALLOWED_ORIGINS=http://localhost:4200,http://127.0.0.1:4200,http://localhost:4300,http://127.0.0.1:4300
     restart: always
 ````
 
@@ -147,6 +148,8 @@ You may have passwords on your repositories, or you may want to change the port.
 ````ini
 SIOSTAM_SERVER_PORT=4300
 SIOSTAM_SERVER_SOCKET_ADDRESS=127.0.0.1
+SIOSTAM_SERVER_CORS_ALLOWED_ORIGINS=http://localhost:4200,http://127.0.0.1:4200,http://localhost:4300,http://127.0.0.1:4300
+
 SIOSTAM_INTERVAL_BETWEEN_UPDATES=5min
 
 SIOSTAM_GIT_HTTPS_USERNAME=your-username

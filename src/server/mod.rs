@@ -51,44 +51,38 @@ pub(crate) async fn start_server(access_to_core: Arc<Core>) -> Result<(), Custom
         let svg_access_to_core = access_to_core.clone();
         let update_master_access_to_core = access_to_core.clone();
 
+        // Wrap an access to the core into app_data to allow the actors from websocket to get updates
         let update_master = actors::UpdateMasterActor::new(update_master_access_to_core).start();
         let update_master = Arc::from(Mutex::new(update_master));
         let app_data = web::Data::new(AppState { update_master });
 
+        // Construct the app main routes
         App::new()
             .app_data(app_data)
-            .wrap(
-                Cors::new() // <- Construct CORS middleware builder
-                    .allowed_origin("http://localhost:4200")
-                    .allowed_origin("http://127.0.0.1:4200")
-                    .allowed_origin("http://localhost:4300")
-                    .allowed_origin("http://127.0.0.1:4300")
-                    .allowed_methods(vec!["GET", "POST"])
-                    .allowed_headers(vec![header::AUTHORIZATION, header::ACCEPT])
-                    .allowed_header(header::CONTENT_TYPE)
-                    .max_age(3600)
-                    .finish(),
-            )
             .wrap(Logger::default())
-            .route(
-                "/graph/json",
-                web::get().to(move || match json_access_to_core.json() {
-                    Ok(json) => HttpResponse::Ok().body(json),
-                    Err(err) => HttpResponse::InternalServerError()
-                        .body(serde_json::to_string(&err).unwrap_or(err.message)),
-                }),
+            .service(
+                web::scope("/graph")
+                    .wrap(build_cors().finish())
+                    .route(
+                        "/json",
+                        web::get().to(move || match json_access_to_core.json() {
+                            Ok(json) => HttpResponse::Ok().body(json),
+                            Err(err) => HttpResponse::InternalServerError()
+                                .body(serde_json::to_string(&err).unwrap_or(err.message)),
+                        }),
+                    )
+                    .route(
+                        "/svg",
+                        web::get().to(move || match svg_access_to_core.svg() {
+                            Ok(svg) => HttpResponse::Ok()
+                                .content_type(mime::IMAGE_SVG.as_ref())
+                                .body(svg),
+                            Err(err) => HttpResponse::InternalServerError()
+                                .body(serde_json::to_string(&err).unwrap_or(err.message)),
+                        }),
+                    ),
             )
-            .route(
-                "/graph/svg",
-                web::get().to(move || match svg_access_to_core.svg() {
-                    Ok(svg) => HttpResponse::Ok()
-                        .content_type(mime::IMAGE_SVG.as_ref())
-                        .body(svg),
-                    Err(err) => HttpResponse::InternalServerError()
-                        .body(serde_json::to_string(&err).unwrap_or(err.message)),
-                }),
-            )
-            .route("/ws/", web::get().to(websocket::index))
+            .service(web::scope("/ws").route("/", web::get().to(websocket::index)))
             .service(fs::Files::new("/", public_path.as_str()).index_file("index.html"))
     })
     .bind(&bind_address)
@@ -107,4 +101,29 @@ pub(crate) async fn start_server(access_to_core: Arc<Core>) -> Result<(), Custom
     .map_err(|err| CustomError::new(format!("While starting server: {}", err)))?;
 
     Ok(())
+}
+
+/// Construct the settings for Cross-Origin Resource Sharing (CORS)
+/// Details on https://developer.mozilla.org/fr/docs/Web/HTTP/CORS
+/// We must allow only the given origins to avoid security issues
+fn build_cors() -> Cors {
+    // CORS: allow origin based on what is defined in env var
+    let default_origin_settings = "*".to_string();
+    let origin_settings =
+        env::var("SIOSTAM_SERVER_CORS_ALLOWED_ORIGINS").unwrap_or(default_origin_settings);
+
+    // Multiple origins are separated by commas
+    let origins: Vec<&str> = origin_settings.split(",").collect();
+    debug!("Allowing origins: {:?}", origins);
+
+    // Construct the CORS builder and allow origins
+    let mut cors = Cors::new();
+    for origin in origins {
+        cors = cors.allowed_origin(origin)
+    }
+
+    cors.allowed_methods(vec!["GET", "POST"])
+        .allowed_headers(vec![header::AUTHORIZATION, header::ACCEPT])
+        .allowed_header(header::CONTENT_TYPE)
+        .max_age(3600)
 }
